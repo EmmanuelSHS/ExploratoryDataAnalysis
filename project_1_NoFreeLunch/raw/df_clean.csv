@@ -1,0 +1,115 @@
+"Program","ProgrammingProficiency","Matlab","R","Github","Excel","SQL","RStudio","ggplot2","shell (terminal / command line)","C/C++","Python","Stata","LaTeX","XML","Web: html css js","google drive (formerly docs)","Sweave/knitr","dropbox","SPSS","regular expressions (grep)","lattice"
+"IDSE (master)","Confident",0,1,0,1,1,1,1,0,0,1,1,0,0,0,1,0,1,0,0,0
+"Other masters","Confident",0,1,0,1,0,1,1,0,0,0,0,0,0,0,1,0,1,0,1,0
+"Data Science Certification","Expert",0,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,0,1,0
+"IDSE (master)","None",0,0,0,1,0,0,0,0,0,1,0,0,0,1,1,0,1,0,0,0
+"IDSE (master)","Confident",0,1,0,0,1,1,0,0,1,1,0,0,0,0,1,0,1,0,0,0
+"IDSE (master)","A little",1,0,1,0,0,1,0,0,1,1,0,1,0,0,0,0,0,0,0,0
+"Statistics (master)","Confident",1,1,1,1,0,1,1,0,1,1,0,0,0,0,1,0,1,0,0,0
+"QMSS","A little",1,1,0,1,1,1,0,0,1,1,1,0,0,0,0,0,0,0,0,0
+"IDSE (master)","None",0,0,0,1,0,0,0,0,0,1,1,0,0,0,1,0,1,1,0,0
+"IDSE (master)","Confident",0,1,1,1,1,1,0,1,0,1,0,1,0,1,1,0,1,0,0,0
+"IDSE (master)","Confident",0,1,0,0,0,1,0,0,0,1,0,1,0,0,1,0,1,0,0,0
+"IDSE (master)","Confident",0,1,0,0,0,1,0,0,1,1,1,0,0,0,1,0,0,0,0,0
+"IDSE (master)","Expert",1,1,1,1,1,1,1,1,0,1,0,1,0,0,1,0,1,1,0,0
+"Statistics (master)","Expert",0,1,1,0,1,1,1,0,0,1,0,0,0,0,1,0,1,0,0,0
+"Statistics (master)","Confident",0,1,0,1,0,1,0,0,0,0,1,0,0,0,0,0,1,0,0,0
+"QMSS (master)","Confident",0,1,0,1,0,1,1,0,1,1,1,1,0,0,1,1,1,1,0,1
+"Other masters","Confident",1,0,0,0,0,1,0,0,1,1,1,0,0,0,0,0,0,1,0,0
+"IDSE (master)","Confident",1,1,0,1,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+"Statistics (master)","Confident",0,1,0,1,0,1,0,0,0,1,0,0,0,0,1,0,1,0,0,0
+"IDSE (master)","A little",0,1,0,1,1,1,1,0,0,1,1,1,0,0,1,0,1,0,0,0
+"IDSE (master)","Expert",1,1,1,1,1,1,1,0,1,1,0,1,0,0,1,1,1,1,0,1
+"IDSE (master)","Confident",1,1,0,1,0,1,0,0,1,1,0,1,0,0,1,0,0,1,0,0
+"IDSE (master)","Confident",1,1,1,1,1,1,1,1,0,1,0,1,0,0,1,0,1,0,0,0
+"Statistics (master)","A little",1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+"IDSE (master)","Confident",0,1,0,0,0,1,1,0,0,1,0,0,0,0,1,0,0,1,0,0
+"Statistics (master)","Confident",0,0,0,0,0,1,1,0,0,1,0,1,0,0,0,0,0,0,0,0
+"IDSE (master)","Confident",0,1,0,0,1,1,1,1,1,1,0,0,1,1,1,0,1,1,1,0
+"IDSE (master)","Confident",0,1,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0
+"Statistics (master)","Confident",1,1,0,1,0,1,0,0,1,0,1,0,0,0,0,0,0,1,0,0
+"Data Science Certification","A little",0,1,0,1,0,1,0,0,0,0,0,0,0,0,1,0,1,0,0,0
+"QMSS","Confident",0,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,0
+"IDSE (master)","Confident",0,1,0,1,0,1,1,0,0,1,1,1,0,0,1,0,1,0,0,0
+"Other masters","Confident",0,1,0,1,1,1,0,0,0,1,0,0,0,0,1,0,1,0,0,0
+"Other masters","Confident",1,1,1,1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0
+"IDSE (master)","Confident",1,1,1,1,1,1,0,1,1,1,0,1,1,1,1,0,1,0,0,0
+"Data Science","Confident",0,1,1,0,1,1,1,1,0,1,0,0,0,0,1,0,1,0,1,0
+"IDSE (master)","Confident",1,1,0,1,1,1,0,1,1,1,0,0,0,0,0,0,1,0,0,0
+"IDSE (master)","Confident",0,1,0,1,1,1,0,0,1,0,0,0,0,0,1,0,1,0,0,0
+"Data Science Certification","Confident",1,1,0,1,1,1,0,1,0,1,1,0,0,0,1,0,1,0,0,0
+"Statistics (master)","Confident",0,1,0,1,0,1,0,0,0,0,0,1,0,0,1,0,0,0,0,0
+"IDSE (master)","Confident",0,1,1,1,1,1,1,0,0,1,0,0,0,1,1,0,1,0,0,0
+"Statistics (master)","Confident",1,1,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,1,0,0
+"IDSE (master)","Confident",1,1,1,1,0,1,1,1,0,1,0,1,0,0,1,0,0,0,0,0
+"IDSE (master)","Confident",1,1,1,1,0,1,1,1,0,1,0,1,0,0,1,0,0,0,0,0
+"Statistics (master)","Expert",1,1,0,1,0,1,0,0,1,0,0,0,0,0,0,0,0,1,0,0
+"IDSE (master)","A little",0,1,1,0,0,1,0,0,0,1,0,0,0,0,1,0,1,0,0,0
+"IDSE (master)","Expert",1,1,0,1,1,1,0,0,0,1,0,0,0,0,1,0,1,0,0,0
+"Statistics (master)","Confident",0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+"Statistics (master)","Expert",1,1,1,1,1,1,1,0,1,1,0,0,1,0,1,0,0,0,0,0
+"IDSE (master)","Confident",0,1,0,1,1,1,0,0,0,1,1,0,0,0,1,0,0,0,0,0
+"IDSE (master)","Confident",1,1,0,1,0,1,0,0,0,1,0,0,0,0,1,0,1,0,0,0
+"IDSE (master)","A little",0,0,0,1,0,0,0,0,0,1,0,0,0,0,1,0,1,0,0,0
+"Data Science Certification","A little",1,1,1,1,1,1,0,1,0,1,0,0,1,1,1,0,1,0,0,0
+"IDSE (master)","A little",0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+"Statistics (master)","A little",0,1,0,0,0,1,1,0,0,0,0,1,0,0,0,0,0,0,0,0
+"IDSE (master)","Confident",1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,1,0,0
+"Statistics (master)","A little",0,1,1,0,0,1,0,0,0,0,0,1,0,0,1,0,1,0,0,0
+"IDSE (master)","Confident",0,1,0,1,1,1,0,1,0,1,0,0,0,0,0,0,0,0,1,0
+"Ph.D.","Confident",1,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0
+"IDSE (master)","Confident",0,1,0,1,0,1,0,0,0,1,0,0,0,0,1,0,1,0,0,0
+"Data Science Certification","Confident",0,1,0,0,1,1,0,1,1,1,0,0,0,0,1,0,1,0,0,0
+"Statistics (master)","Expert",1,1,0,1,1,1,1,0,1,0,0,0,0,1,1,0,1,0,0,0
+"IDSE (master)","Confident",0,1,1,0,1,1,1,1,1,1,0,0,0,1,1,0,1,0,1,0
+"Data Science Certification","Expert",1,1,0,1,1,1,1,1,1,1,0,0,1,1,1,0,1,0,1,0
+"IDSE (master)","Confident",0,1,1,0,1,1,0,1,1,1,0,1,1,0,1,0,1,0,1,0
+"Statistics (master)","A little",0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0
+"IDSE (master)","Confident",1,1,0,0,0,1,0,0,0,1,0,1,0,0,1,0,0,0,0,0
+"IDSE (master)","None",0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0
+"Data Science Certification","Confident",0,1,0,1,1,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0
+"Data Science Certification","None",0,0,0,1,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0
+"Data Science Certification","None",0,0,1,1,1,0,0,1,1,1,0,0,0,0,1,0,0,0,1,0
+"IDSE (master)","Expert",0,1,1,1,1,1,1,1,0,1,1,1,0,1,1,1,1,1,0,0
+"Ph.D.","A little",0,1,1,1,1,0,0,1,0,1,0,1,0,1,1,0,1,0,0,0
+"Other masters","Expert",0,1,1,1,1,1,1,1,0,0,0,1,0,0,1,1,1,0,1,0
+"Applied Math","None",0,0,1,0,0,0,0,1,1,1,0,1,0,0,0,0,0,0,0,0
+"IDSE (master)","A little",0,1,0,1,1,1,0,1,0,1,0,1,0,0,1,0,1,0,0,0
+"Data Science Certification","Confident",0,0,0,1,0,0,0,0,0,1,0,0,0,0,1,0,1,0,0,0
+"IDSE (master)","Confident",0,1,1,1,1,1,0,1,0,1,0,1,0,1,1,0,1,0,0,0
+"IDSE (master)","A little",1,1,0,1,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0
+"Other masters","A little",1,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0
+"Statistics (master)","A little",0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+"Other masters","Confident",0,1,0,1,0,1,0,0,0,0,0,0,0,0,1,0,1,0,0,0
+"IDSE (master)","A little",0,0,1,1,1,1,0,1,0,1,0,0,0,1,1,0,1,0,0,0
+"IDSE (master)","A little",0,0,0,1,0,1,0,0,0,1,0,0,0,0,1,0,1,0,0,0
+"IDSE (master)","None",1,0,1,1,1,0,0,1,1,1,0,0,1,1,1,0,1,0,1,0
+"IDSE (master)","Confident",0,1,1,1,1,1,0,1,1,1,0,0,1,1,1,0,1,0,1,0
+"IDSE (master)","A little",1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+"Data Science Certification","None",0,0,1,1,1,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0
+"Data Science Certification","None",0,0,0,1,0,0,0,1,0,1,0,0,0,0,1,0,0,0,0,0
+"Data Science Certification","Confident",0,1,0,1,0,1,0,0,0,0,0,0,0,0,1,0,1,0,0,0
+"IDSE (master)","Confident",1,1,0,1,0,1,0,0,0,1,0,0,0,0,0,0,1,0,0,0
+"Data Science Certification","A little",0,0,1,1,1,1,0,0,0,1,0,0,0,0,1,0,1,0,0,0
+"IDSE (master)","A little",0,1,1,1,1,1,0,1,1,0,0,1,1,1,1,1,1,0,1,0
+"Data Science Certification","A little",0,1,1,1,0,1,0,0,0,1,0,0,0,0,1,0,0,0,0,0
+"Data Science Certification","A little",0,0,0,0,1,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0
+"Data Science Certification","A little",0,1,0,1,1,0,0,0,0,1,1,1,0,1,1,0,0,0,0,0
+"PhD Biomedical Informatics","Confident",0,1,0,1,0,1,0,1,0,1,1,0,0,0,1,0,1,0,1,0
+"Data Science Certification","Confident",0,1,0,1,0,1,1,0,0,1,0,0,0,0,0,0,1,0,0,0
+"Data Science Certification","A little",1,1,1,1,1,1,0,1,0,1,1,0,1,0,1,0,1,0,0,0
+"Data Science Certification","A little",0,0,0,0,0,0,0,1,0,1,0,0,0,1,0,0,0,0,1,0
+"Other masters","Confident",1,1,1,1,1,1,1,1,1,1,0,0,0,1,1,0,1,0,1,0
+"IDSE (master)","A little",0,1,0,1,1,0,0,0,1,0,0,0,0,0,1,0,1,0,0,0
+"Other masters","Confident",1,1,0,1,1,1,0,0,0,1,1,0,0,0,0,0,1,1,0,0
+"IDSE (master)","Confident",1,1,1,0,1,0,1,1,1,1,0,1,0,0,1,0,1,0,0,0
+"MSDS","Confident",0,1,1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+"IDSE (master)","A little",0,1,0,0,1,1,0,1,0,1,0,0,0,0,0,0,0,0,0,0
+"Other masters","Confident",0,1,1,1,1,1,1,1,0,1,0,1,0,0,0,1,0,0,0,1
+"Data Science Certification","A little",0,1,1,1,0,1,0,0,0,0,0,0,0,0,1,0,1,0,1,0
+"IDSE (master)","Confident",1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0
+"IDSE (master)","A little",0,1,0,0,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+"Other masters","A little",0,1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+"Data Science Certification","None",0,0,1,1,1,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0
+"IDSE (master)","A little",0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+"IDSE (master)","Confident",1,0,0,0,1,0,0,1,0,1,0,1,0,1,0,0,0,0,0,0
