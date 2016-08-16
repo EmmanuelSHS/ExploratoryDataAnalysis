@@ -1,0 +1,707 @@
+---
+title: "EDAV Final Project"
+author: "La Nao de China"
+date: "May 8th, 2016"
+output: 
+  html_document: 
+    number_sections: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message =FALSE, warning = FALSE, echo = FALSE)
+```
+
+#Introduction:
+Any person that has walked through NYC streets during winter knows the risks of stepping into an ice covered pothole that will ruin his or her day in an instant. Car drivers also suffer from bad road conditions, and the city is responsible for keeping the streets in good condition. Our story is motivated by an article from the New York Times:
+
+> Report Reveals New York City Paid $138 Million in Settlements Related to Potholes on Roadways.                                                 
+                                                             --- The New York Times
+
+Such article made us think that street defects are a relevant problem to our daily life--they may cause flat tires, twist (and freeze if its winter) ankles and cost significant money to the city in damage repairs. Here are two examples of street defects:
+
+  Pothole ![pothole](pothole.jpg)               Cave-in  ![cave_in](cave_in.jpg)
+
+Most complaints that are related to street conditions are processed by DOT--Department of Transportation. Hence, we decided to analyze their data from 2015. 
+Our project is structured in the following way:
+
+* Relevance of defects:
+  What makes the street defects relevant to the city of New York? 
+  How are the street defects are related to accidents on street?
+* Causes of defects:
+  Weather and street defects.
+  Amount and type of traffic and street defects.
+* DOT Response time:
+  Response time and temporality.
+  Geographical analysis of response time.
+  Socioeconomic variables and response time.
+* Predictive model:
+  Model to predict DOT response time using predictors such as: descriptors, time of complaint (season, time of the day, etc..), borough, zip code's median income. 
+
+
+
+```{r, warning=FALSE,echo=FALSE,message=FALSE}
+library(ggplot2)
+library(scales)
+library(dplyr)
+library(ggExtra)
+library(devtools)
+library(plotly)
+library(ggmap)
+library(ggthemes)
+
+path = "~/desktop/Final Project"
+setwd(path)
+
+collision <- read.csv('NYPD_Motor_Vehicle_Collisions.csv')
+DOT <- read.csv("DOT_2015.csv")
+
+collision$DATE <- paste(collision$DATE,collision$TIME," ")
+collision$DATE <- strptime(collision$DATE,"%m/%d/%Y %H:%M")
+collision$LATITUDE <- as.numeric(as.character(collision$LATITUDE))
+collision$LONGITUDE <- as.numeric(as.character(collision$LONGITUDE))
+co_list = c('Obstruction/Debris', 'Other Lighting Defects', 'Pavement Defective','Pavement Slippery')
+collision_sub <- collision[collision$CONTRIBUTING.FACTOR.VEHICLE.1 %in% co_list | collision$CONTRIBUTING.FACTOR.VEHICLE.2 %in% co_list | collision$CONTRIBUTING.FACTOR.VEHICLE.3 %in% co_list | collision$CONTRIBUTING.FACTOR.VEHICLE.4 %in% co_list | collision$CONTRIBUTING.FACTOR.VEHICLE.5 %in% co_list,]
+collision_sub <- collision_sub[format.Date(collision_sub$DATE,"%Y")=="2015",]
+collision_sub$day <- format.Date(collision_sub$DATE,"%Y-%m-%d")
+
+DOT$Created.Date <- as.character(DOT$Created.Date)
+DOT$DATE <- strptime(DOT$Created.Date,"%m/%d/%Y %I:%M:%S %p")
+DOT$Latitude <- as.numeric(as.character(DOT$Latitude))
+DOT$Longitude <- as.numeric(as.character(DOT$Longitude))
+do_list <- c("Street Light Out", "Street Light Cycling", "Multiple Street Lights Out", 
+            "Pothole", "Cave-in", "Failed Street Repair", "Defective Hardware", 
+             "Rough, Pitted or Cracked Roads")
+DOT_sub <- DOT[format.Date(DOT$DATE,"%Y") == "2015" & DOT$Descriptor %in% do_list,]
+DOT_sub$Descriptor <- droplevels(DOT_sub$Descriptor)
+DOT_sub$day <- format.Date(DOT_sub$DATE,"%Y-%m-%d")
+bor_list <- c("BRONX","BROOKLYN","MANHATTAN","QUEENS","STATEN ISLAND")
+DOT_sub <- DOT_sub[!is.na(DOT_sub$Latitude),]
+
+```
+
+After subset the related information from 311 Dataset, we picked top eight descriptors we believed are related to street conditions within our new DOT dataset and make the density plot. 
+```{r, warning=FALSE,echo=FALSE,message=FALSE,out.width="60%", fig.align='center'}
+DOT_sub$Descriptor<- factor(DOT_sub$Descriptor, levels=names(sort(table(DOT_sub$Descriptor), decreasing=FALSE)))
+ggplot(data = DOT_sub)+geom_bar(aes(x=DOT_sub$Descriptor,y = ..count..))+coord_flip()+labs(title = "Descriptor count")+xlab("Descriptor")+theme_fivethirtyeight()
+```
+
+According to this plot, Pothole and Street light out seems to be the most common complaints in NYC.
+
+```{r, echo=FALSE,warning=FALSE,message=FALSE}
+
+map = get_map(c(-73.9,40.75),zoom = 11, source="osm",color = 'bw')
+setwd(paste(path,"/Gif",sep = ""))
+for (i in 1:12){
+  name = paste('Month', i, sep = ' ')
+  DOT_sub$month <- as.numeric(format.Date(DOT_sub$DATE,"%m"))
+  collision_sub$month <- as.numeric(format.Date(collision_sub$DATE,"%m"))
+  g = ggmap(map) + 
+    stat_density2d(aes(x = Longitude, y = Latitude, fill = ..level..), data = DOT_sub[DOT_sub$month == i,],geom = 'polygon', alpha = 0.2)+ 
+    scale_fill_gradient("Complaint level",low = "yellow", high = "red") + ggtitle(name)+
+    geom_density2d(data = collision_sub[collision_sub$month == i,],aes(LONGITUDE,LATITUDE,color = "Accidents"))+
+    scale_colour_manual("Accident density", labels = "Accidents",values = "blue")
+    
+  filename = paste(i,"png",sep = ".")
+  png(filename,width = 600,height = 600)
+  plot(g)
+  dev.off()
+}
+system("convert -delay 1/2 1.png 2.png 3.png 4.png 5.png 6.png 7.png 8.png 9.png 10.png 11.png 12.png -loop 0 month.gif")
+
+setwd(path)
+
+
+```
+#Relevance of defects:
+
+The first step of our analysis consisted on identifying the relevance of stred defects. In general, street defects have a wide range of negative consequences, mostly provoking both pedestrian and vehicle accidents. We decided to focus our study in looking at the relationship between "DOT-complaints about street defects" and "Motor vehicle collisions" in New York City during 2015.
+We introduced two dataset: ["DOT_Complaints"](https://nycopendata.socrata.com/Social-Services/311-Service-Requests-from-2010-to-Present/erm2-nwe9) which we subselected from the 311 service dataset. And ["NYPD-Motor-Vehicle-collsions"](https://data.cityofnewyork.us/Public-Safety/NYPD-Motor-Vehicle-Collisions/h9gi-nx95) which we found from NYC open data.
+When processing the datasets, we found out that among "contributes of the accidents" field in the second dataset, some of them are clearly not related to street conditions (for example: "Alcohol Involvement" and "Vehicle Defective"). In order to make our study more accurate, we picked the main causes (Obstruction/Debris', 'Other Lighting Defects', 'Pavement Defective' and 'Pavement Slippery') that we consider to be related with street defects.
+
+## General Gif Map
+
+To begin with, we made a gif map to show distribution of the complaints and accidents that happened in NYC during 2015. In this plot, and let each frame represent one month. The colored background represents the areas with most to least DOT complaints (from red to yellow respectively). On top of it, we plotted blue density lines to show the distribution of accidents.
+
+Accidents and street defects: ![GIF](month.gif)
+
+As we can see, the distribution of the two events keep changing from time to time, but they seem to be centered around the same areas. From here, we break down our study of accidents into two dimensions: Spatial and temporal.
+
+## Complaints & Accidents related by zipcode:
+
+To testify our thoughts, we made a scatter plot showing the count complaints (X-axis) vs. the count of accident (Y-axis) within each zipcode in 2015. We also used different colors representing the five boroughs in NYC. 
+
+```{r, echo=FALSE,warning=FALSE,message=FALSE}
+road = read.table('road.txt')
+zip_co = matrix(0,nrow = length(names(table(road$zip))),ncol = 2)
+zip_co[,1] = names(table(road$zip))
+zip_co[,2] = as.numeric(table(road$zip))
+zip_co <- as.data.frame(zip_co)
+colnames(zip_co) <- c("zipcode","count of accident")
+zip_co$`count of accident` <- as.numeric(as.character(zip_co$`count of accident`))
+
+zip_dot <- as.matrix(table(DOT_sub$Incident.Zip))
+zip_do <- matrix(data = NA, nrow = nrow(zip_dot), ncol = 2)
+zip_do[,1] <- rownames(zip_dot)
+zip_do[,2] <- zip_dot[,1]
+zip_do <- as.data.frame(zip_do)
+colnames(zip_do) <- c("zipcode","count of complaints")
+zip_do$`count of complaints` <- as.numeric(as.character(zip_do$`count of complaints`))
+mat <- merge(zip_co,zip_do, by = "zipcode")
+mat[is.na(mat)] <- 0
+mat$scale_complaints <- scale(mat$`count of complaints`)
+mat$scale_accidents <- scale(mat$`count of accident`)
+
+Borough <- read.csv("borough.csv") 
+Borough$Borough <- as.character(Borough$Borough)
+for (i in 1: nrow(mat)){
+  mat$Borough[i]  <- Borough$Borough[which(Borough$zipcode == mat$zipcode[i])]
+  mat$Borough[i] <- toupper(mat$Borough[i])
+}
+
+labels <- as.data.frame(bor_list)
+colnames(labels) <- "Borough"
+labels$label <- rep(0,length(bor_list))
+for (i in 1:length(bor_list)){
+  ind <- which(mat$Borough == bor_list[i])
+  sub <- mat[ind,]
+  corr <- cor(sub$scale_complaints,sub$scale_accidents)
+  labels$label[i] <- round(corr,4)
+  lm <- lm(data = sub,sub$`count of accident`~sub$`count of complaints`)
+  labels$slope[i] <- round(lm$coefficients[2],4)
+  #labels$x[i] <- min(sub$`count of complaints`+range(sub$`count of complaints`)/4)
+}
+labels$x <- c(500,500,250,500,1200)
+labels$y <- rep(50,5)
+labels$y2 <- rep(45,5)
+```
+
+
+```{r, echo=FALSE,warning=FALSE,fig.width=12,fig.height=8,message=FALSE}
+p1 <- ggplot(mat, aes(x = `count of complaints`,y = `count of accident`,color = Borough))+
+  geom_point(size = 3)+scale_colour_brewer(palette = "Set1",direction = -1)+xlab("Count of complaints")+ylab("Count of accident")+
+  theme_bw()+labs(title="Count of complaints and count of accident by zipcode")
+
+ggMarginal(p1,type = "histogram",color = "black",fill = "#008FD5") 
+```
+
+As expected, there is a positive relationship between complaints and accidents. Areas with more street defects, in general, tend to have more accidents. Also, the two histograms on the side show that both x and y distributions are skewed to the right. Interestingly, we also found that extreme values of complaints per accident usually happened in Staten Island while extremes of accidents per complaint are seem to be concentrated in Brooklyn. 
+Since the relationship seems to differ by boroughs, we broke down the analysis at the borough level:
+For example, when comparing Manhattan (green) and Queens (Blue), it seems like areas in Manhattan tend to have more accidents per complaints than Queens. 
+
+From here, we move to the next section of our analysis, studying temporal relationship of complaints vs accidents. 
+
+## Complaints & Accidents temporal analysis:
+
+We start our analysis with a time series plot (by day). Here, we used dashed lines to represent complaints and solid lines represent accidents. We also chose a scaled count instead of an actual count to help plotting gvien that there are more complaints than accidents every day. 
+```{r, echo=FALSE,warning=FALSE,fig.width=10,fig.height=6}
+
+sub_dot <- as.data.frame(table(DOT_sub$day,DOT_sub$Borough))
+colnames(sub_dot) <- c("day","Borough","count dot")
+sub_dot$day <- as.Date(as.character(sub_dot$day),"%Y-%m-%d")
+#sub_dot$percent_dot <- sub_dot$`count dot`/sum(sub_dot$`count dot`)
+sub_dot<- sub_dot[sub_dot$Borough != "Unspecified",]
+
+sub_collision <- as.data.frame(table(collision_sub$day,collision_sub$BOROUGH))
+colnames(sub_collision) <- c("day","Borough","count collision")
+sub_collision$day <- as.Date(as.character(sub_collision$day),"%Y-%m-%d")
+#sub_collision$percent_collision <- sub_collision$`count collision`/sum(sub_collision$`count collision`)
+sub_collision <- sub_collision[sub_collision$Borough !="",]
+
+for (i in 1:length(bor_list)){
+  ind_dot <- which(sub_dot$Borough == bor_list[i])
+  ind_col <- which(sub_collision$Borough == bor_list[i])
+  sub_dot$percent_dot[ind_dot] <- sub_dot$`count dot`[ind_dot]/sum(sub_dot$`count dot`[ind_dot])
+  sub_dot$scale_dot[ind_dot] <- scale(sub_dot$`count dot`[ind_dot])
+  
+  sub_collision$percent_collision[ind_col] <- sub_collision$`count collision`[ind_col]/sum(sub_collision$`count collision`[ind_col])
+  sub_collision$scale_collision[ind_col] <- scale(sub_collision$`count collision`[ind_col])
+}
+
+
+labels2 <- as.data.frame(bor_list)
+colnames(labels2) <- "Borough"
+for (i in 1:length(bor_list)){
+  sub1 <- sub_dot[sub_dot$Borough == bor_list[i],]
+  sub2 <- sub_collision[sub_collision$Borough == bor_list[i],]
+  sub <- merge(sub1,sub2,by = "day",all = TRUE)
+  sub[is.na(sub$scale_collision),9] <- 0
+  corr <- cor(sub$scale_dot,sub$scale_collision)
+  labels2$label[i] <- round(corr,4)
+}
+labels2$x <- c(500,500,250,500,1200)
+labels$y <- rep(50,5)
+labels$y2 <- rep(45,5)
+g<- ggplot()+geom_smooth(data = sub_dot,aes(x = sub_dot$day,y = sub_dot$scale_dot,color = Borough,linetype = "Complaints"),span = 0.1,se = FALSE)+geom_smooth(data =sub_collision,aes(x = sub_collision$day,y=sub_collision$scale_collision,color = Borough,linetype = "Accidents"),span = 0.1,se = FALSE)+scale_color_brewer(palette ="Set1")+theme_bw()+xlab("Date")+ylab("Scaled count")+facet_wrap(~Borough)+labs(title = "Time series based by Boroughs")+theme(legend.position = c(0.8,0.3))+scale_linetype_manual("",values = c("Complaints"=2,"Accidents"=1))
+
+ggplotly(g)
+
+```
+
+From the plot, we can see that both events have a peek in mid March, which could suggest that they are also related in time. Although, the increase in complaints actually happened after the increase of accidents, which could be explained by the fact that people probably tend to complain about street defects only after they had an accident.
+
+
+# Cause of Defects
+In this section, we want to explore the causes of street defects. We especially concentrate our attention in three aspects: amount of snow fall, presence of heavy vehicles,  and estimated amount of traffic.
+
+## Snow fall
+
+In addition to forming ice layers that cause vehicles to skid out of control and have more accidents on average, snow and freezing temperatures harm roads in the following way: When freezing temperatures occur, the water that had previously entered the ground freezes, causing an expansion that breaks the asphalt. Therefore, we expect road defects and snowfall to have a similar trend. In order to find out the relationship between snowfall and street defects, we used the 2010-2015 annual snowfall data from Central Park meteorological observation station.  
+
+
+```{r snowfall,cache=TRUE,echo=F,warning=F,message=F,fig.width=10, fig.height=8,out.width="60%", fig.align='center'}
+#load data
+
+library(reshape2)
+library(ggplot2)
+load("311_processed-2.Rdata")
+DOT_data=df[df$Agency=='DOT',]
+
+#Annual pothole claim
+
+pothole_data=DOT_data[DOT_data$Descriptor=='Pothole',]
+pothole_year = pothole_data$Created.Date
+pothole_year = substring(pothole_year, 1, 4)
+annual_pothole= c(sum(pothole_year == '2010', na.rm = TRUE),
+              sum(pothole_year == '2011', na.rm = TRUE),
+              sum(pothole_year == '2012', na.rm = TRUE),
+              sum(pothole_year == '2013', na.rm = TRUE),
+              sum(pothole_year == '2014', na.rm = TRUE),
+              sum(pothole_year == '2015', na.rm = TRUE))
+
+
+#Annual cave-in claim
+
+cavein_data=DOT_data[DOT_data$Descriptor=='Cave-in',]
+cavein_year = cavein_data$Created.Date
+cavein_year = substring(cavein_year, 1, 4)
+annual_cavein= c(sum(cavein_year == '2010', na.rm = TRUE),
+                  sum(cavein_year == '2011', na.rm = TRUE),
+                  sum(cavein_year == '2012', na.rm = TRUE),
+                  sum(cavein_year == '2013', na.rm = TRUE),
+                  sum(cavein_year == '2014', na.rm = TRUE),
+                  sum(cavein_year == '2015', na.rm = TRUE))
+
+#Annual RPCR claim
+
+RPCR_data=DOT_data[DOT_data$Descriptor=='Rough, Pitted or Cracked Roads',]
+RPCR_year = RPCR_data$Created.Date
+RPCR_year = substring(RPCR_year, 1, 4)
+annual_RPCR= c(sum(RPCR_year == '2010', na.rm = TRUE),
+                 sum(RPCR_year == '2011', na.rm = TRUE),
+                 sum(RPCR_year == '2012', na.rm = TRUE),
+                 sum(RPCR_year == '2013', na.rm = TRUE),
+                 sum(RPCR_year == '2014', na.rm = TRUE),
+                 sum(RPCR_year == '2015', na.rm = TRUE))
+
+#Annual Road Related Claim
+road_related_claim=annual_pothole+annual_cavein+annual_RPCR
+road_related_claim_percentage=road_related_claim/sum(road_related_claim)
+
+
+#Annual Street Light Out Claim
+
+lightout_data=DOT_data[DOT_data$Descriptor=='Street Light Out',]
+lightout_year = lightout_data$Created.Date
+lightout_year = substring(lightout_year, 1, 4)
+annual_lightout= c(sum(lightout_year == '2010', na.rm = TRUE),
+               sum(lightout_year == '2011', na.rm = TRUE),
+               sum(lightout_year == '2012', na.rm = TRUE),
+               sum(lightout_year == '2013', na.rm = TRUE),
+               sum(lightout_year == '2014', na.rm = TRUE),
+               sum(lightout_year == '2015', na.rm = TRUE))
+
+#Annual Street Light Cycling Claim
+
+lightcyc_data=DOT_data[DOT_data$Descriptor=='Street Light Cycling',]
+lightcyc_year = lightcyc_data$Created.Date
+lightcyc_year = substring(lightcyc_year, 1, 4)
+annual_lightcyc= c(sum(lightcyc_year == '2010', na.rm = TRUE),
+                   sum(lightcyc_year == '2011', na.rm = TRUE),
+                   sum(lightcyc_year == '2012', na.rm = TRUE),
+                   sum(lightcyc_year == '2013', na.rm = TRUE),
+                   sum(lightcyc_year == '2014', na.rm = TRUE),
+                   sum(lightcyc_year == '2015', na.rm = TRUE))
+
+#Annual Multiple Street Lights Out Claim
+
+multilight_data=DOT_data[DOT_data$Descriptor=='Multiple Street Lights Out',]
+multilight_year = multilight_data$Created.Date
+multilight_year = substring(multilight_year, 1, 4)
+annual_multilight= c(sum(multilight_year == '2010', na.rm = TRUE),
+                   sum(multilight_year == '2011', na.rm = TRUE),
+                   sum(multilight_year == '2012', na.rm = TRUE),
+                   sum(multilight_year == '2013', na.rm = TRUE),
+                   sum(multilight_year == '2014', na.rm = TRUE),
+                   sum(multilight_year == '2015', na.rm = TRUE))
+
+#Annual Street Light Related Claim
+
+light_related_claim=annual_lightout+annual_lightcyc+annual_multilight
+light_related_claim_percentage=light_related_claim/sum(light_related_claim)
+
+#Snow Data 2010-2015
+
+snow = c(51.4, 61.9, 7.4, 26.1, 57.4, 50.3)
+snow=snow/sum(snow)
+year = 2010:2015
+
+snow_claim_data = data.frame(matrix(year))
+snow_claim_data$road_relate_claim=road_related_claim_percentage
+snow_claim_data$light_relate_claim=light_related_claim_percentage
+snow_claim_data$snow=snow
+colnames(snow_claim_data) = c('Year', 'Percent', 'light relate claim','snow (inches)')
+
+ggplot(snow_claim_data,aes(Year)) +   
+  geom_line(aes(y = Percent, colour = "road relate claim")) + 
+  geom_line(aes(y =snow_claim_data$'light relate claim' , colour = "street light relate claim")) + geom_line(aes(y =snow_claim_data$'snow (inches)' , colour = "snow fall")) +
+  theme_fivethirtyeight()+
+  labs(title = "Snowfall vs. Complaints")
+
+```
+
+In the graph above, we have plotted the annual snowfall, road related 311 complaints, and street light related 311 complaints in new york city from 2010 to 2015. The Green line shows the snowfall reached its highest point in 2011, then it decreased in 2012, but increased again in 2013 and 2014. The red line representing road related complaints trend, reveals strong positive correlation with snowfall, which is consistent with our expectation. It also reached its peak in 2011, dropped sharply in 2012, then increased dramatically in 2013 and 2014. Street light related claicomplaints do not show significant fluctuations from 2010 to 2015, which suggests that these are not related with the weather.
+
+
+## Truck
+
+As defined in New York City Traffic Rules, a truck is "any vehicle designed for the transportation of property that has the characteristics: two axles and six tires, or three or more axles". As research reveals, heavy vehicles (including trucks) contribute importantly to roads and bridges damages such as potholes. For purpose of maintaining good road condition, trucks are only allowed traveling on certain roads in New York City. In this section, we used NYC Truck Routes Data from New York City Department of Transportation.
+
+
+```{r truck0,cache=TRUE, echo=F,warning=F,message=F}
+library(maptools)
+library(sp)
+library(leaflet)
+
+data=read.csv('filtered_311.csv')
+data=data[,c(2,3,6:12)]
+
+
+
+truckLines = readShapeLines("All_Truck_Routes_NYC_Lion14A/All_Truck_Routes_NYC_Lion14A.shp")
+proj4string(truckLines) <- CRS("+proj=lcc +lat_1=40.66666666666666 +lat_2=41.03333333333333 +lat_0=40.16666666666666 +lon_0=-74 +x_0=300000 +y_0=0 +ellps=GRS80 +datum=NAD83 +to_meter=0.3048006096012192 +no_defs")
+CRS.new <- CRS("+init=epsg:4326")
+truckLines = spTransform(truckLines, CRS.new)
+res <- lapply(slot(truckLines, "lines"), function(x) lapply(slot(x, "Lines"),
+                                                     function(y) slot(y, "coords")))
+
+start_longi=c()
+start_lati=c()
+end_longi=c()
+end_lati=c()
+for (i in 1:length(res)){
+  start_longi=append(start_longi,res[[i]][[1]][1,1])
+  start_lati=append(start_lati,res[[i]][[1]][1,2])
+  end_longi=append(end_longi,res[[i]][[1]][2,1])
+  end_lati=append(end_lati,res[[i]][[1]][2,2])
+}
+street=data.frame(start_longi,start_lati,end_longi,end_lati)
+
+data_poth=data[data$Descriptor=='Pothole',]
+data_cave=data[data$Descriptor=='Cave-in',]
+data_RPCR=data[data$Descriptor=='Rough, Pitted or Cracked Roads',]
+
+```
+
+```{r truck,cache=FALSE, echo=F,warning=F,message=F,fig.width=10, fig.height=8}
+
+m = leaflet()%>%setView(lng = -73.9712,lat = 40.7831,zoom=11)%>%
+  addProviderTiles('CartoDB.Positron')
+  for (i in 1:length(truckLines)) {
+    m = addPolylines(m, lng = c(street[i,1],street[i,3]), lat = c(street[i,2],street[i,4]),color='blue',weight=1.5)
+}
+
+random_sample=sample(c(1:nrow(data_poth)),1000,replace=F)
+random_sample_cave=sample(c(1:nrow(data_cave)),1000,replace=F)
+random_sample_rpcr=sample(c(1:nrow(data_RPCR)),1000,replace=F)
+
+
+m%>%addCircles(lng = data_poth$Longitude[random_sample], lat = data_poth$Latitude[random_sample],color='black', opacity = 1)%>%addCircles(lng = data_cave$Longitude[random_sample_cave],lat=data_cave$Latitude[random_sample_cave],color='#cc6633', opacity = 1)%>%addLegend('topleft',colors=c('black','#cc6633'),labels=c('Pothole','Cave-in'),title='Complaints Type')
+```
+
+We plotted truck routes in New York City and relevant 311 complaints in the above graph. The blue lines represent truck routes, the black circles represent pothole 311 complaints, and the brown circles represent cave-in 311 complaints. After careful observation, we found an interesting phenomenon: while many black circles are near or on blue lines, brown circles are far from those truck paths. This is because cave-ins are usually caused by structural characteristics of the ground, and not so much by traffic that goes through the street. To measure objectively the relationship between trucks and defects, we computed, for each defect, its closest distance to a truck road. We then plotted the distribution of these closest distances to see "how close" on average, each defect is from a truck road. Lower distances suggest that defects are formed on or around areas that usually have trucks circulating on them. The distribution is the following:
+
+```{r truck density, cache=TRUE,echo=F,warning=F,message=F,fig.width=10, fig.height=8,out.width="60%", fig.align='center'}
+library(rgeos)
+library(sp)
+library(maptools)
+library(leaflet)
+library(dplyr)
+
+truckLines = readShapeLines("All_Truck_Routes_NYC_Lion14A/All_Truck_Routes_NYC_Lion14A.shp")
+proj4string(truckLines) <- CRS("+proj=lcc +lat_1=40.66666666666666 +lat_2=41.03333333333333 +lat_0=40.16666666666666 +lon_0=-74 +x_0=300000 +y_0=0 +ellps=GRS80 +datum=NAD83 +to_meter=0.3048006096012192 +no_defs")
+CRS.new = CRS("+proj=lcc +lat_1=40.66666666666666 +lat_2=41.03333333333333 +lat_0=40.16666666666666 +lon_0=-74 +x_0=300000 +y_0=0 +ellps=GRS80 +datum=NAD83 +to_meter=0.3048006096012192 +no_defs")
+# CRS.new <- CRS("+init=epsg:2263")
+# truckLines = spTransform(truckLines, CRS.new)
+# cavein = complaints %>% filter(!Descriptor %in% c("Pothole"))
+complaints=read.csv('filtered_311.csv')
+attach(complaints)
+cavein = complaints %>% filter(Descriptor %in% c("Cave-in"))
+cavein = cavein %>% sample_n(1000) %>%as.data.frame() 
+coordinates(cavein) = ~Longitude+Latitude
+proj4string(cavein) = CRS("+init=epsg:4326")
+cavein = spTransform(cavein, CRS.new)
+cavein_truck_dist <- gDistance(cavein, truckLines, byid=TRUE)
+cavein_truck_min_dist = apply(cavein_truck_dist, 2, function(X) min(X))
+pothole = complaints %>% filter(Descriptor %in% c("Pothole"))
+pothole = pothole %>% sample_n(1000) %>%as.data.frame() 
+coordinates(pothole) = ~Longitude+Latitude
+proj4string(pothole) = CRS("+init=epsg:4326")
+pothole = spTransform(pothole, CRS.new)
+pothole_truck_dist <- gDistance(pothole, truckLines, byid=TRUE)
+pothole_truck_min_dist = apply(pothole_truck_dist, 2, function(X) min(X))
+# lightout = complaints %>% filter(Descriptor %in% c("Street Light Out"))
+# lightout = lightout %>% sample_n(5000) %>%as.data.frame() 
+# coordinates(lightout) = ~Longitude+Latitude
+# proj4string(lightout) = CRS("+init=epsg:4326")
+# lightout = spTransform(lightout, CRS.new)
+# lightout_truck_dist <- gDistance(lightout, truckLines, byid=TRUE)
+# lightout_truck_min_dist = apply(lightout_truck_dist, 2, function(X) min(X))
+holes_df = data.frame(value = c(unname(cavein_truck_min_dist), 
+                                unname(pothole_truck_min_dist))*.3048, 
+                      type = c(rep("cave-in", length(cavein_truck_min_dist)), 
+                               rep("pothole", length(pothole_truck_min_dist))))
+# rep("light-out", length(lightout_truck_min_dist))))
+
+distance_truck_plot = ggplot(holes_df %>% filter(value<6000)) + 
+  geom_density(aes(fill=type,x=value), alpha=.4) + 
+  scale_fill_tableau()+
+  theme_fivethirtyeight()+
+  labs(x="min distance to truck line", title= "Distance to truck line density") 
+
+distance_truck_plot
+```
+
+This density graph is consistent with our conjecture. Compared to cave-ins, potholes are more concentrated around truck routes. For the purpose of maintain good road conditions, we suggest the department of transportation to take more measures to protect the truck routes, for example, using new paving materials that are pothole-resistent, and giving more frequent maintenance to such roads.
+
+It is important to remark that these truck roads include "Through-roads" and "Local-roads". This means that no truck is allowed to circulate out of these roads unless they are headed directly to or from a destination out of these designated areas.
+
+## Traffic
+
+In addition to heavy vehicles, constant traffic, even of smaller vehicles, can damage the roads as well. To explore the relationship between traffic and road damages (using DOT complaints as proxy), we combine 311 complaint data with 2015 Manhattan traffic open data. The traffic data contains statistics of traffic by time of the day in each several road segments in the city. We first transformed the data into geographic coordinates, and then mapped these coordinates to a zipcode, then aggregated traffic by zip code to get an estimate of cars that circulate on each zip code every day.
+
+<p>
+<img src="./manhattan_traffic.png" alt="Drawing" style="display:inline;height: 400px; "/>
+<img src="./manhattan_complaint.png" alt="Drawing" style="display:inline;height: 400px;"/>
+</p>
+
+From the plots above, we can see that the correlation between traffic and road condition complaints is not obvious. However, we can still observe some positive relationship between traffic and road condition. It is meaningful, since traffic is only one of many factors for road condition complaints, other factors. Additionally, this could suggest that DOT does a good job giving maintenance to areas with more traffic. 
+
+```{r}
+library(dplyr)
+library(readr)
+library(lubridate)
+library(seas)
+library(maptools)
+library(grDevices)
+library(sp)
+library(raster)
+library(ggplot2)
+library(ggthemes)
+library(pander)
+
+nycZip = readRDS("data_by_zip.rds")
+complaints = readRDS("complaints_response.rds")
+zip_borough = read_csv("zip_borough.csv" , col_types = list(col_character(), col_character())) %>%
+  group_by(zip) %>% summarize(borough = unique(borough))
+
+
+points = as.data.frame(complaints) 
+coordinates(points) = ~Longitude+Latitude
+proj4string(points) = CRS("+init=epsg:4326 +proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
+
+complaints = over(points, nycZip) %>%
+  left_join(zip_borough, by = c( "GEOID10" = "zip")) %>%
+  mutate(Created.Date = ymd_hms(Created.Da),
+         season = mkseas(Created.Date, width = "DJF"),
+         am = am(Created.Date),
+         hour = hour(Created.Date),
+         time_day = ifelse(hour >= 0 & hour < 6, "early_morning", 
+                           ifelse(hour >= 6 & hour < 12, "morning",
+                                  ifelse(hour >= 12 & hour < 18, "afternoon",
+                                         "evening"))),
+         weekday = weekdays(Created.Date)
+  )
+
+
+levels(complaints$season) = c("Winter", "Spring", "Summer", "Fall")
+```
+
+# Response time
+
+The objective of this section is to measure the response time for street defects, as reported in the 311 dataset. We measure the response time as ("Closed date" - "Created date"). 
+We started with an exploratory analysis, to describe how relevant factors are correlated with response time. Based on our results, we built a predictive model to try to determine an estimated response time according to different attributes of each street defect complaint. This predictive model could be useful to the DOT in order to help them be more self-aware of their service quality.
+
+##Exploratory analysis
+
+The response time varied significantly within a wide range going from a few hours to over a year (435 days). The distribution, however, is mostly centered around 2-5 days as shown in the graph below:
+
+```{r out.width="60%", fig.align='center'}
+ggplot(complaints%>% filter(response.Time < 10)) + 
+  geom_density(aes(x = response.Time), fill = "darkgrey", alpha = .7) + 
+  scale_x_continuous(breaks = seq(1:10)) +
+  labs(x = "response time", title = "Response Time Density") +
+  # scale_fill_tableau()+
+  theme_fivethirtyeight()
+```
+
+
+To understand which factors help determine the response time, we did a break down by type of street defect, and analyzed how temporality, location, and socioeconomic variables seemed to be correlated with response time. 
+
+### Breakdown by type of complaint:
+
+```{r out.width="60%", fig.align='center', fig.width=12, fig.height=8}
+ggplot(complaints%>% filter(response.Time < 10)) + 
+  geom_boxplot(aes(x = Descriptor, y = response.Time, fill=Descriptor)) + 
+  scale_y_continuous(breaks = seq(1:10)) +
+  labs(y = "response time", title = "Response Time by Descriptor") +
+  scale_fill_tableau()+
+  theme_fivethirtyeight()
+```
+
+
+
+As we can see, potholes, street lights out, and cave-ins have the largest average response time. However, overall there doesn't seem to be an important difference between different types of complaints' average response time. Variance, on the other side, seems to be larger for potholes, cave-ins, and street light cycling. The variance in potholes (and to a certain extent, cave-ins as well) was expected, given that there are very different types of potholes, and it would be expected that larger potholes get prioritized over smaller ones. 
+
+The next step is to explore response time across temporality.
+
+### Temporality analysis:
+
+Before looking at the data, we would have expected that response time would be higher for weekends and for winter, when we know there are more defects, and also repairs are probably harder to make because of the harsh weather.
+
+First, we analyzed response time   by season. As we mentioned, we expected winter to have the highest response time. However, we were surprised (positively) to see that it is not the case. Winter does seem to have a relatively high variance, but not a very higher average.
+
+```{r out.width="60%", fig.align='center'}
+ggplot(complaints%>% filter(response.Time < 10)) + 
+  geom_boxplot(aes(x = season, y = response.Time, fill=season)) + 
+  scale_y_continuous(breaks = seq(1:10)) +
+  labs(y = "response time", title = "Response Time by Weekday") +
+  scale_fill_tableau() +
+  theme_fivethirtyeight()
+```
+ 
+ 
+To continue our analysis, we computed the distribution of the response time by day of the week. Again, our initial hypothesis that weekends would have a higher average response time was not supported by the data. 
+
+The response time distribution by day of the week is as follows:
+
+```{r out.width="60%", fig.align='center'}
+complaints$weekday = factor(complaints$weekday,
+  levels= c("Monday","Tuesday", "Wednesday", "Thursday", "Friday","Saturday","Sunday"))
+
+ggplot(complaints%>% filter(response.Time < 10)) + 
+  geom_boxplot(aes(x = weekday, y = response.Time, fill=weekday)) +
+  scale_y_continuous(breaks = seq(1:10)) +
+  labs(y = "response time", title = "Response Time by Weekday") +
+  scale_fill_tableau()+
+  theme_fivethirtyeight()
+```
+ 
+ 
+To conclude our temporality exploratory analysis, we did one more breakdown by time of the day. We found that complaints that come in after noon have a slightly higher average response time than complaints that come in the morning. This makes sense because it reflects that complaints that come in in the afternoons or evenings are probably more likely to be responded to the next day. Higher variability in afternoon complaints is also explained by this reason.
+
+```{r out.width="60%", fig.align='center'}
+complaints$am = factor(complaints$am, levels = c("TRUE", "FALSE"), labels = c("am", "pm")) 
+ggplot(complaints%>% filter(response.Time < 10)) + 
+  geom_boxplot(aes(x = am, y = response.Time, fill=am)) + 
+  scale_y_continuous(breaks = seq(1:10)) +
+  labs(y = "response time", title = "Response Time by AM/PM", x="") +
+  scale_fill_tableau()+
+  theme_fivethirtyeight()
+```
+ 
+ 
+### Geographical analysis. 
+
+In addition to exploring temporality variations, we explored how response time varies according to boroughs and zip codes. Moreover, we included information about each zip code's income level to understand the relationship between these variables.
+
+The first finding was, unsurprisingly, that Manhattan has the best response time among all New York boroughs. This could be explained by a number of reasons. Manhattan is the busiest of all boroughs, and it also has the highest income per capita. Another likely reason is that distances are relatively short and it is probably easy for DOT repair teams to reach street defect locations faster.
+
+```{r out.width="60%", fig.align='center'}
+ggplot(complaints%>% filter(response.Time < 10)) + 
+  geom_violin(aes(x = borough, y = response.Time, fill=borough)) + 
+  scale_y_continuous(breaks = seq(1:10)) +
+  labs(y = "response time", title = "Response Time by Borough") +
+  scale_fill_tableau() +
+  theme_fivethirtyeight()
+```
+
+
+An interesting observation from the response time by borough, is the different variabilities. Brooklyn seems to have a very high variance in response time, while Manhattan and Staten Island are more concentrated around their means. Bronx and Queens seem to be in a middle ground, in terms of variability. While we found this difference in variabilities, we did not dig deeper to explore potential causes of such differential in variability. We did, however, explore a potential cause for difference on average time.
+
+As mentioned before, one of the factors we think could be related with response time, is income. Richer areas tend to have overall more visibility and influence over government.  Therefore, we would expect a better response time the higher the income. To do an income analysis, we aggregated the average complaints' response time by zip code, and joined the median income data from the US Census Bureau. 
+
+In the plot below, we can observe the relationship between median income (in log scale), average response time, and borough:
+
+
+```{r out.width="60%", fig.align='center'}
+ggplot(complaints %>% filter(response.Time < 10)) + 
+  aes(x = median_income, y = response.Time, color=borough)+
+  geom_point() + 
+  stat_smooth(method ="lm",se = FALSE)+
+  labs(y = "response time", title = "Response vs. Income by Borough", x = "median income (in log scale)") +
+  scale_x_log10()+
+  scale_color_tableau() +
+  theme_fivethirtyeight()
+```
+
+
+Interestingly, most boroughs present a negative correlation between median income and response time. The only exception to this relationship is Queens, where there seems to be a positive correlation. In all cases, however, the slope does not seem to be very steep. 
+In addition to median income, we did the same analysis with median rent compared to response time. We mapped the results to visualize how income and response time are geographically distributed, and see how they are correlated:
+
+<iframe src="https://carlosespino11.shinyapps.io/responseTimeApp/" width="100%" height="600px" frameborder="0"></iframe>
+
+##Predictive model:
+
+To conclude our response time analysis, we decided to build a predictive model with the variables we have discussed so far.
+
+### The model.
+
+Our dependent variable is response time (continuous) and our predictors are: 
+
+*	Time of complaint: Early morning (0:00-5:59 am), morning (6:00-11:59 am), afternoon (12:00-5:59 pm), and evening (6:00 – 11:59 pm)
+*	Season
+*	Log(median income)
+*	Borough
+*	Defect type
+*	Interaction between borough and income
+
+We ran a linear regression to understand the signs and magnitudes of the correlations of these variables with response time. The results are summarized in the following table.
+
+```{r }
+model = lm(response.Time ~time_day + season + log(median_income) + Descriptor + borough, complaints)
+
+pander(summary(model))
+```
+
+
+By inspecting the summary table for our regression, we observe that all of our variables are statistically significant. This significance is, however, probably due to the large number of observations, which reduces the estimates' variance significantly. 
+
+On the other hand, it is worth noting that the largest coefficient estimates are those associated with borough and with type of defect. When controlling for other variables, cave-ins (base case) seem to have the highest response time, while light cycling has the lowest. The difference between these two is around 1.25 days. 
+
+In terms of boroughs, as we saw earlier, Manhattan has the lowest response time, followed by Queens, Bronx, Staten Island, and Brooklyn. The difference between Manhattan (lowest), and Brooklyn (highest) response time, was about 2 days, which is around 66% of the overall average response time.
+
+Seasonally speaking, fall (seasonSON) and spring (seasonMAM) have the lowest response rate, although the variation is not too big. The difference between spring (lowest) and winter (highest) response time is only around 0.3 days, which is around 10% of the overall average response time. 
+
+### Measuring performance
+
+Finally, we tested how our model would predict response time by splitting the data into a training and a testing set (75% and 25% respectively). Since we are predicting a continuous variables, we needed to come up with a way to measure our performance rate in an interpretable way. Keeping this in mind, we computed the absolute value of the residuals as a percentage of the true response time, and averaged across the whole testing set. 
+
+To evaluate our measurement, we will compare the average prediction error with the average prediction error that would be obtained from simply predicting the average response time for any case (which is 3 days). 
+
+Our resulting prediction error was 18.04%, which is an improvement of 12 percentage points when compared against the simple average prediction, which was 29.69%.
+
+
+
+#Conclusions
+Street defects are very relevant in any city, especially in a place like NYC that has several factors contributing to the appearance of such. An important amount of traffic (both light an heavy vehicles), and the extreme weather conditions observed throughout the year, make New York City streets especially vulnerable to such problems. The consequences of such defects are varied, ranging from twisted ankles and flat tires, to serious life threatening accidents and multi-million dollar claims that cost taxpayers a significant amount of money each year. Moreover, there is a significant amount of damage that is not accounted for. A great proportion of people affected by street defects would probably not report their damage, making it very difficult to estimate accurately the real costs of street defects.
+
+To improve their street defects repairs, the DOT could focus their efforts in prioritizing maintenance jobs on areas where trucks are allowed. Also, they should keep doubling efforts during winter and raining time, which, according to our findings, they probably are already doing.
+
+Furthermore, the DOT should consider reviewing their internal processes to help improve their response time in lower income areas, where response time seems to be skewed to the higher income neighborhoods. 
+
+
+
+
+
+
+
