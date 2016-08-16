@@ -1,0 +1,25 @@
+---
+title: "writeup_pj5"
+author: "Mengqi"
+date: "May 13, 2016"
+output: html_document
+---
+
+### Text Generation
+In this part, we try something fun: use addresses as traning data to generate new speeches via Markov Chain. Those generated retains the style from training data. We divided addresses by time periods and parties. Some speeches are listed below.
+
+New Country, Demoncrat:
+
+> The remedial policy, the principles and policy of augmenting the military defenses recommended by every branch of the precedent of the President shall exercise his own Government, and that for that mutual good will of those sales during the last session of Congress, the next fiscal year of $404,878.53, or more propriety than the public works, plant schools throughout their Territorial existence, and would foster a system of discriminating and countervailing duties necessarily produces. The selection and of personal communication with California.
+
+New Country, Republican:
+
+> While dwelling with pleasing satisfaction upon the general impulse required for the want of an act of December last that instructions had been anticipated as Spain must have known that the expedition having been fully accomplished. The basis of action in public offices is established by those who promoted and facilitated by the laws on the 30th of April 29th, 1816, was the destiny of nations. The question, therefore, whether it should be enabled to judge of the other by partial agreement.
+
+Present, Demoncrat:
+
+> We ought to be a tough economy. I vetoed that proposal to Congress comprehensive legislation that will cover the uninsured, strengthen Medicare for older Americans. Every plan before the Congress to support what works and greater energy independence. We need to ultimately make clean, renewable energy in history, with the people who are behind to catch criminals and drug abuse and heroin abuse. So, who knows, we might perfect our Union. And despite all our children futures to say to those beyond our shores. Right now it helps about half of all children who lose their health care. Forty million Americans without health insurance industry from exploiting patients.
+
+Present, Republican:
+
+> Our country must also act now because it means the most important institutions -- a symbol of quality and progress, And where every one who has a new century, your century, on dreams we cannot see, on the offensive by encouraging economic growth, and reforms in education and support the training and launch a major al-Qaida leader in Yemen. All told, more than 3,000 suspected terrorists have chosen the weapon of fear. Some speak of an American tradition to show a certain skepticism toward our democratic institutions.

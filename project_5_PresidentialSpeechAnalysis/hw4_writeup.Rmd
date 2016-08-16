@@ -1,0 +1,437 @@
+---
+title: "EDAV Project 4"
+author: "La Nao de China"
+date: "May 13th, 2016"
+output: 
+  html_document: 
+    number_sections: yes
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+# Introduction
+
+The United States of America is a relatively new country. It has only been around for a little over 200 years. During this period of time, it has been through a number of very different phases that have led the USA to become a major global power: from early expansionism, civil war and industrialization, world wars, cold war, and modern America. 
+
+The question we ask in this study is: how has the USA's evolution is history seems reflected on its leaders' speeches? For this, we analize the State of the Union speeches that are given yearly since 1790. Our objective is to get insights about the general sentiment, as well as the relevance and sentiment towards specific entities related to each period. Our main assumption is that a leader's speech will reflect the overall nation's sentiment. 
+
+To do this, we divided our analysis in 6 different periods that we consider characterize the history of the United States. The periods are the following:
+
+1. (1789-1861) A New Nation: This period was characterized by territorial expansion and massive immigration from Europe and Asia. Most of the states from present USA, were incorporated in this period. In general, it was a prosperous era, ended by the worst conflict the country has yet seen: The Civil War.
+
+2. (1861 - 1913) Civil War and Industrialization: This period starts with the Civil War (1861-1865) and continues with the late XIX and early XX centuries. Great technological changes occurred in this period. Electricity was invented, and transportation was revolutioned. 
+
+3. (1914 - 1945) World Wars: Enormous changes occurred worldwide during this period. Two major wars and the greatest economic depression shaped the modern world as we know it. USA, together with the Soviet Union reaffirmed their position as major world powers.
+
+4. (1945 - 1989) Cold War: This was a period of big tensions between countries. Some conflicts arose suh as Korean War and Vietnam. Economically speaking, there was tremendous growth and innovation. Internet and space exploration started. The end of this era comes with the fall of the Berlin Wall, and the subsequent fall of the Soviet Union. 
+
+5. (1990 - 2001) Nineties: This was a period of economic prosperity in general. While the "communist threat" had vanished, a new "enemy" came into scene: Terrorists.
+
+6. (2002-2016) Modern America: The most recent years, there has been tremendous technological innovation. However, a major crisis and global terrorism have been a constant topic in mouth of everybody.
+
+We divide our analysis in four parts:
+
+1. General sentiment analysis: We explore the sentiment of presidential speeches over time, and relate some of the observations to historical happennings.
+
+2. Targeted analysis: We breakdown the sentiment analysis into different entities, to observe which are the entities that are associated with more positive, negative, or fluctuating sentiments over time.
+
+3. Word analysis by party: We analyze how presidential speeches reflect fundamental differences between parties, and explore how these differences have evolved over time.
+
+4. Entity network analysis. We do a general overview of the relationship between entities that are relevant to the USA. We group such entities in several subgroups according to their network.
+
+
+# General Sentiment Analysis
+
+We want to analyze the sentiment, which is the attitude, opinion or feeling, of speeches during those six periods by using [Alchemy API](http://www.alchemyapi.com/). For example, if a speech contains pessimistic view of the economy, or expresss great concerns about a war, it is classified as negative sentiment. In contrast, if the speech shows optimistic attitudes on future economic situation, or reflects strong optimism about winning a war, it is classified it as positive sentiment.  
+
+```{r,echo = F, message = F,warning=F,fig.height=5,fig.width=10}
+library (rjson)
+library(plyr)
+df2 = fromJSON(file = "general_sentiment.json")
+df2.i = lapply(df2,function(x){ unlist(x)})
+mcdata = rbind.fill(lapply(df2.i,function(x) do.call("data.frame", as.list(x))))
+table = read.csv('Titles.csv')
+mcdata$party = table$Party
+mcdata$index = table$Year
+mcdata$index[2]=1790.5
+mcdata$index[161]=1953.5
+mcdata$index[169]=1961.5
+mcdata$index[209]=2001.5
+mcdata$docSentiment.score=as.numeric(as.character(mcdata$docSentiment.score))
+mcdata$period = c(rep(1,72),rep(2,49),rep(3,30),rep(4,46),rep(5,27))
+
+# smooth 5pts average
+sm_data=0
+sm_data[1:2]=0
+for (a in 3:222){
+  sm_data[a] = mean(mcdata$docSentiment.score[(a-2):(a+2)])
+}
+sm_data[223:224] = 0
+mcdata$smooth = sm_data
+
+library(ggplot2)
+library(ggthemes)
+library(viridis)
+library(RColorBrewer)
+
+fill_list = brewer.pal(6,"Accent")
+y.max = max(mcdata$smooth[!is.na(mcdata$smooth)])
+labels = data.frame(x = c(1825,1890,1930,1970,1994,2008),y = rep(y.max+0.05),label = c("New Nation","Civil War and Industrialization","World Wars","Cold War","90's","Present"))
+
+df1 = as.data.frame(with(mcdata,cbind(embed(smooth,2),embed(index,2))))
+colnames(df1) = c('yend','y','xend','x')
+df1$col = mcdata$party[1:223]
+
+ggplot() +
+  geom_segment(data = df1,aes(x = x, y = y, xend = xend, yend = yend, colour = col),stat = 'identity',show.legend=TRUE,position = "identity") +
+    scale_colour_manual("Political Party",values = c("Democrat" = "#43a2ca","Republican" = "#e34a33", "None" = "#636363"))+
+  scale_x_continuous(breaks = c(1790,1815,1835,1861,1875,1895,1915,1930,1946,1970,1990,2002,2016))+
+  geom_rect(aes(xmin=1790, xmax=1861,ymin= -Inf,ymax = Inf), alpha=0.15,fill = fill_list[1])+
+  geom_rect(aes(xmin=1862, xmax=1914,ymin= -Inf,ymax = Inf), alpha=0.15,fill = fill_list[2])+
+  geom_rect(aes(xmin=1915, xmax=1945,ymin= -Inf,ymax = Inf), alpha=0.15,fill = fill_list[3])+
+  geom_rect(aes(xmin=1946, xmax=1989,ymin= -Inf,ymax = Inf), alpha=0.15,fill = fill_list[4])+
+  geom_rect(aes(xmin=1990, xmax=2001,ymin= -Inf,ymax = Inf), alpha=0.15,fill = fill_list[5])+
+  geom_rect(aes(xmin=2002, xmax=2016,ymin= -Inf,ymax = Inf), alpha=0.15,fill = fill_list[6])+
+  #geom_smooth(data=mcdata,aes(index,docSentiment.score),span = 0.1,se = FALSE,color = "black")+
+  theme_minimal(base_size = 13)+
+  theme_fivethirtyeight()+
+  labs(title = "Entity Sentiment in Speeches", y = 'Sentiment score',x = 'Year') +
+  geom_text(data=labels,aes(x = x,y=y,label = label), cex = 2) +
+  geom_hline(yintercept = 0,color = 'darkgrey')
+```
+
+In the above Speech Sentiment graph, we represents speeches in different colors according to the incumbent president's political party: Following tradition, we plotted democrats in blue, republicans in red, and neither in black. The y axis represents the intensity of the sentiment, where zero represents neutral sentiment. It is important to note that we categorized presidents belonging to the historical "Whig" and "Republican-Democrat" parties as Republicans, while the "Federalists" where categorized as Democrats. This categorization was made according to the history of such parties.
+
+Overall, more than 90% speeches are classified as positive sentiment. It is not difficult to explain because it is expected that presidents will avoid delivering negative speeches in public very frequently. Even during the hardest periods, such as great depression and world war II, the president has to encourage their citizens to raise moral. 
+
+Although very few speeches are classified as negative sentiment, it is possible to relate each one of them to big events in history. For example, those several speeches at the end of A New Nation period were correlated to the advent of the Civil War. Before the outbreak of the such event, the north and south had irreconcilable conflicts on some crucial issues such as slavery. The prospect of war hung over the entire country. The negative speeches in World Wars period are related to the great depression and the outbreak of the world war II. Lastly, those negative sentiment speeches from 2002 to the present are connected to 9/11, the Iraq war, and mostly to the 2008-2009 economic crisis.      
+
+# Targeted Analysis
+Next we focus on analyzing specific entities mentioned in speeches. We take four different criteria to select which words to visualize: 
+
+1. Most frequent words.
+2. Largest sentiment fluctuation words.
+3. Words with most positive sentiment.
+4. Words with most negative sentiment.
+
+<iframe src="https://carlosespino11.shinyapps.io/entity_sentiment_analysis/" width="100%" height="600px" frameborder="0"></iframe>
+
+We find some interesting results, for example, government has been regarded as one of the most negative entities. Another observation is that China has become the most positive entity in recent years. Also, the sentiment towards British government has been changing overtime due to the fluctuations in these two countries' relationships. Similarly, many terms can be compared to see how their sentiment has changed over time
+
+Let's change to another perspective. We've plotted the histogram for relevance of top 20 most frequently used entities. The relevance score measures how frequent such topic is mentioned by a specific president.
+
+<iframe src="https://carlosespino11.shinyapps.io/entity_relevance_analysis/" width="100%" height="700px" frameborder="0"></iframe>
+
+From above we can observe that Congress is metioned by all presidents, as it's the common practice in the address. Navy has barely mentioned since the Cold War. It may due to the fact that navy force development is not the top priority, since the U.S government was implementing the Star Wars Program.
+
+
+# Word Analysis by party
+
+As a next section we added an analysis to compare republicans and democrats oer time. We compared, for each period, which were the most common words for republican and democrat presidents. 
+
+We calculated a "similarity score" between republican and democrat speechesfor each period. This score  was calculated by computing the correlation between the vector of relative frequencies of words for each party, and therefore, it goes from -1 to 1.
+
+We first plotted the similarity score analysis to show how republicans and democrats have been diverging in their speeches. While early presidents typically used more general common terms, such as people, citizens, consitution, etc. Mordern presidents have diverged. Modern republicans tend to speak more about terrorism, fear, and war; while modern democrats tend to focus on terms like welfare, jobs, health care, and so on. 
+
+```{r setup2, echo = FALSE, warning = FALSE, message = FALSE}
+library(readr)
+library(tm)
+library(jpeg)
+library(ggthemes)
+library(SnowballC)   
+library(lubridate)
+library(tidyr)
+library(dplyr)
+library(wordcloud)
+library(ggplot2)
+library(ggthemes)
+library(pander)
+library(knitr)
+library(png)
+library(grid)
+```
+```{r data, cache = TRUE,echo = FALSE, warning = FALSE, message = FALSE}
+#setwd("~/Columbia/Course material/Spring 2016/EDAV/Assignment 4")
+# presidents = data %>% mutate(date = mdy(date), year = year(date)) %>% group_by(president) %>% summarize(year = mean(year)) %>% arrange(year)
+data =  read_delim("clean_speeches.txt", delim="|") %>% mutate(date = mdy(date))
+president_party = read_csv("presidents.csv") %>% select(-year)
+```
+```{r arrange, cache = TRUE}
+data <- data %>% left_join(president_party, by = "president")
+docs <- data$text
+docs <- Corpus(VectorSource(docs))
+docs <- tm_map(docs, removePunctuation)   
+docs <- tm_map(docs, removeNumbers) 
+docs <- tm_map(docs, tolower)   
+docs <- tm_map(docs, removeWords, stopwords("english")) 
+docs <- tm_map(docs, removeWords, 
+               c("thats", "lets","dont","must","applause","also", "can", "will", "year","make","many","may", "means",
+                 "one", "two", "just", "far", "every", "use", "yet","even","united","states","congress"
+                 ,"still","america", "made", "give","take", "government"))   
+docs <- tm_map(docs, stripWhitespace)   
+docs <- tm_map(docs, PlainTextDocument) 
+clouds <- function(start,fin, party)
+{
+  docs <- with(data,text[year(date) >= start & year(date) <= fin & Party == party])
+  docs <- Corpus(VectorSource(docs))
+  docs <- tm_map(docs, removePunctuation)   
+  docs <- tm_map(docs, removeNumbers) 
+  docs <- tm_map(docs, tolower)   
+  docs <- tm_map(docs, removeWords, stopwords("english")) 
+  docs <- tm_map(docs, removeWords, 
+                 c("thats", "lets","dont","must","applause","also", "can", "will", "year","make","many","may", "means",
+                   "one", "two", "just", "far", "every", "use", "yet","even","united","states","congress"
+                   ,"still","america", "made", "give","take", "government"))    
+  docs <- tm_map(docs, stripWhitespace)   
+  docs <- tm_map(docs, PlainTextDocument)   
+  color <- ifelse(party == "Republican","red","blue")
+  wordcloud(docs, max.words = 100, random.order = FALSE, scale = c(3,1), color = color)
+  
+}
+simil2 <- function(start,fin)
+{
+ 
+  
+  dtm <- DocumentTermMatrix(docs)
+  
+  dtm2 <- as.matrix(dtm)
+  dtm_rep <- colSums(dtm2[with(data,year(date)<= fin & year(date)>= start & Party == "Republican"),])
+  dtm_dem <- colSums(dtm2[with(data,year(date)<= fin  & year(date)>=start & Party == "Democrat"),])
+ 
+  cor(dtm_rep,dtm_dem)
+  
+}
+extremes <- function(start,fin) {
+dtm <- DocumentTermMatrix(docs)
+dtm2 <- as.matrix(dtm)
+dtm_rep <- colSums(dtm2[with(data,year(date)<= fin & year(date)>= start & Party == "Republican"),], na.rm = TRUE)
+dtm_dem <- colSums(dtm2[with(data,year(date)<= fin  & year(date)>= start & Party == "Democrat"),], na.rm = TRUE)
+reps <- dtm_rep/sum(dtm_rep)
+dems <- dtm_dem/sum(dtm_dem)
+reps
+diff<- reps-dems
+reps <- sort(diff, decreasing =TRUE)
+reps <- reps[1:20]
+dems <- sort(diff)
+dems <- dems[1:20]
+return (list('reps' = reps, 'dems' = dems))
+}
+```
+```{r iteration, cache = TRUE,echo = FALSE, warning = FALSE, message = FALSE}
+parties <- c("Republican", "Democrat")
+periods <- matrix(c(1789,1861,1914,1946,1990,2002,1860,1913,1945,1989,2001,2016), ncol =2)
+exts <- list()
+reps <- list()
+dems <- list()
+ext <- list()
+for (i in 1:dim(periods)[1]){
+  exts[[i]] <- extremes(periods[i,1],periods[i,2])
+  ext[[i]] <- cbind(data.frame('Top Rep. words' = names(exts[[i]][[1]])),data.frame('Score' =exts[[i]][1]))
+  ext[[i]] <- cbind(ext[[i]],data.frame('Top Dem. words' = names(exts[[i]][[2]])),data.frame('Score' =exts[[i]][2]))
+}
+```
+
+
+```{r fig.height=4, fig.align="center"}
+speech_similarity = data.frame(similarity = c(simil2(1797,1860),simil2(1861,1913),
+                               simil2(1914,1945),simil2(1946, 1989),simil2(1990,2001),
+                               simil2(2002, 2016)), date = 1:6)
+ggplot(speech_similarity) + geom_line(aes(y=similarity, x = date)) + 
+  scale_x_continuous(breaks = 1:6,labels = c("New Nation","Civil War & Ind","World Wars","Cold War","90's","Present"))+
+  theme_fivethirtyeight() + labs(title="Speech Similarity Between Parties")
+```
+
+
+It is worth noting the low similarity score observed during the World War periods.The reason of this difference is that democrat presidents had to deal with both World Wars, while Republican presidents dealt with a relatively prosperous 20s decade. Therefore, their speeches were radically different. 
+
+With the hope of further understanding the differences between parties in different time periods, we decided to show comparisons from the first and the last periods: A New Nation and Modern America.
+
+Below, we show a 3 analysis for each one of the two periods.
+
+1. We generated a wordcloud for the period for each party (Republican in red, and Democrat in Blue)
+2. We printed the 20 words that best "characterize" a party for that period. To calculate this, we subtracted the relative frequence vector of the democrats, to the relative frequence vector of the republicans. Thus, positive scores indicate "republicanism", and negative scores indicate "democratism"
+3. We trained a Markov chain model to our text to generate a predictive text for each of the periods/ party combinations.  
+
+
+```{r, results = 'asis', out.width='70%',echo = FALSE, warning = FALSE, message = FALSE, fig.align="center"}
+cat(paste('<h3 align="center"> 1789 - 1860 New Nation <br> Similarity score:', round(simil2(1797,1860),2), '</h3>',sep=" "))
+war_words <- readPNG(paste("Wordcloud_ ",1," .png", sep = ''))
+grid.raster(war_words)
+print(kable(ext[[1]], row.names = FALSE, col.names = c('Top words Republican'    ,'Score','Top words Democrat','Score')))
+# col.names = c('Top Republican words', ' Score','Top Democrat words', 'Score')
+```
+
+### Generated speech
+
+<h3> New Nation, Democrat: </h3>
+
+> The remedial policy, the principles and policy of augmenting the military defenses recommended by every branch of the precedent of the President shall exercise his own Government, and that for that mutual good will of those sales during the last session of Congress, the next fiscal year of $404,878.53, or more propriety than the public works, plant schools throughout their Territorial existence, and would foster a system of discriminating and countervailing duties necessarily produces. The selection and of personal communication with California.
+
+<h3> New Nation, Republican: </h3>
+
+> While dwelling with pleasing satisfaction upon the general impulse required for the want of an act of December last that instructions had been anticipated as Spain must have known that the expedition having been fully accomplished. The basis of action in public offices is established by those who promoted and facilitated by the laws on the 30th of April 29th, 1816, was the destiny of nations. The question, therefore, whether it should be enabled to judge of the other by partial agreement.
+
+```{r, results = 'asis', out.width='70%',echo = FALSE, warning = FALSE, message = FALSE,fig.align="center"}
+cat(paste('<h3 align="center"> (2002 -2016) Modern America <br> Similarity score:', round(simil2(2002,2016),2), '</h3>',sep=" "))
+war_words <- readPNG(paste("Wordcloud_ ",6," .png", sep = ''))
+grid.raster(war_words)
+print(kable(ext[[1]], row.names = FALSE, col.names = c('Top words Republican'    ,'Score','Top words Democrat','Score')))
+```
+
+### Generated speech
+
+<h3> Modern, Democrat: </h3>
+> We ought to be a tough economy. I vetoed that proposal to Congress comprehensive legislation that will cover the uninsured, strengthen Medicare for older Americans. Every plan before the Congress to support what works and greater energy independence. We need to ultimately make clean, renewable energy in history, with the people who are behind to catch criminals and drug abuse and heroin abuse. So, who knows, we might perfect our Union. And despite all our children futures to say to those beyond our shores. Right now it helps about half of all children who lose their health care. Forty million Americans without health insurance industry from exploiting patients.
+
+
+<h3> Modern, Republican: </h3>
+> Our country must also act now because it means the most important institutions -- a symbol of quality and progress, And where every one who has a new century, your century, on dreams we cannot see, on the offensive by encouraging economic growth, and reforms in education and support the training and launch a major al-Qaida leader in Yemen. All told, more than 3,000 suspected terrorists have chosen the weapon of fear. Some speak of an American tradition to show a certain skepticism toward our democratic institutions.
+
+
+
+
+```{r}
+library(png)
+library(grid)
+library(readr)
+library(lubridate)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(pander)
+
+president_party = read_csv("presidents.csv") %>% select(-year)
+
+data =  read_delim("clean_speeches.txt", delim="|") %>% 
+  mutate(date = mdy(date), year = year(date), era = ifelse(year>=1914,"modern", "old"))%>% 
+  left_join(president_party, by = "president")
+
+
+entity_sentiment = read_csv("entity_sentiment_matrix.csv")%>% select(-1)
+
+data_terms = data  %>%bind_cols(entity_sentiment)
+names(data_terms) = make.names(names(data_terms), unique=TRUE)
+```
+
+```{r}
+terms_graph = data.frame(source=c(),target=c())
+ 
+for(i in 1:dim(data)[1]){
+  terms_row= data_terms[i,] %>% select(Desert.Shield:Orders) %>% unlist()
+  edges = terms_row[!is.na(terms_row)]%>% names() %>%combn(2) %>% t()%>% as.data.frame()
+  terms_graph = terms_graph %>% bind_rows(edges) 
+}
+
+term_edges  = terms_graph %>% group_by(V1, V2) %>% 
+  summarise(weight = n())%>% ungroup() %>% 
+  transmute(source=V1, target = V2, weight = weight)
+```
+
+# Entity Network Analysis
+Lastly, to get an overall summary of the United States presidents' speeches over the course of history, we did a word network analysis using the whole data to try to group different entities and their relationship among each other.
+
+For this analysis we construct a word netork $G=(E,V)$ with weights $w_{ij}$ in the following way:
+
+  1. Each entity is represented by a node $i \in V$
+  2. If two entities $i$, $j$ are mentioned in the same speech, we add an edge $(i,j) \in E$ between both entities.
+  3. The weight of an edge $w_{ij}$ is determined by the number of speeches where both, $i$ and $j$, were mentioned together.
+  
+After constructing the network, we have the following structure:
+
+  1. 2847 nodes
+  2. 139,309 edges
+  3. Weights: 
+  
+  
+```{r}
+pander(summary(term_edges$weight))
+```
+
+
+To find which terms are related among themselves, we used the Louvain Community Detection Algorithm. The entities belonging to the same group are more related to the ones within their group than the ones outside their group. Using the default modularity parameter of 1.0, we found 7 groups.
+
+The following graph shows the word network obtained:
+
+![entities_network](word_graph3_t.png)
+
+The size of the nodes represent the degree; the size of the label, the eigenvector centrality and the color, the modularity class.
+
+It's useful to zoom in into the graph to analyze some terms or groupings in particular. For example, we can see interesting cases like the following two:
+
+The first iunteresting case of the entities network, if we focus on the green nodes, we can appreciate that most of the correspond to World War II war army terms such as Army Service Forces, German Army, Japanese Fleet, Air Force, etc.
+
+```{r fig.align="center", out.width="70%"}
+war_words <- readPNG("war_words.png")
+
+grid.raster(war_words)
+```
+
+The following is another interesting example. We can appreciate that the blue nodes in the middle and the purple nodes nearby also have war related terms. The blue ones are more related to World War I like  Austria Hungary, Balkan peninsula and League of Nations, while the purples are about other war terms related to places or to characters like Pearl Harbor, Hitler, Mr. Churchill, etc. 
+
+```{r fig.align="center", out.width="70%"}
+allies_words <- readPNG("allies_words.png")
+
+grid.raster(allies_words)
+```
+
+
+The advantage of this kind of analysis is that it not only highlights the most important entities, but also finds relations between them and identify which of them are similar. 
+
+The full resolution version of the network is not inlcuded here because it's heavy, but you can find it in the following link [Full word network](http://cespinog.com/img/word_graph_full.pdf).
+
+
+<!-- ```{r results="asis"} -->
+<!-- library("d3wordcloud") -->
+
+
+<!-- speech_similarity = data.frame(similarity = c(simil2(1797,1860),simil2(1861,1913), -->
+<!--                                simil2(1914,1945),simil2(1946, 1989),simil2(1990,2001), -->
+<!--                                simil2(2002, 2016)), date = 1:6) -->
+<!-- c = ggplot(speech_similarity) + geom_line(aes(y=similarity, x = date)) + -->
+<!--   scale_x_continuous(breaks = 1:6,labels = c("New Nation","Civil War & Ind","World Wars","Cold War","90's","Present"))+ -->
+<!--   theme_fivethirtyeight() + labs(title="Speech Similarity Between Parties") -->
+
+
+<!-- clouds_d3 <- function(start,fin, party) -->
+<!-- { -->
+<!--   docs <- with(data,text[year(date) >= start & year(date) <= fin & Party == party]) -->
+<!--   docs <- Corpus(VectorSource(docs)) -->
+<!--   docs <- tm_map(docs, removePunctuation) -->
+<!--   docs <- tm_map(docs, removeNumbers) -->
+<!--   docs <- tm_map(docs, tolower) -->
+<!--   docs <- tm_map(docs, removeWords, stopwords("english")) -->
+<!--   docs <- tm_map(docs, removeWords, -->
+<!--                  c("thats", "lets","dont","must","applause","also", "can", "will", "year","make","many","may", "means", -->
+<!--                    "one", "two", "just", "far", "every", "use", "yet","even","united","states","congress" -->
+<!--                    ,"still","america", "made", "give","take", "government")) -->
+<!--   docs <- tm_map(docs, stripWhitespace) -->
+<!--   docs <- tm_map(docs, PlainTextDocument) -->
+
+<!--   tdm <- TermDocumentMatrix(docs) -->
+<!--   m <- as.matrix(tdm) -->
+<!--   v <- sort(rowSums(m), decreasing = TRUE) -->
+<!--   d <- data.frame(word = names(v), freq = v) -->
+<!--   d <- d %>% tbl_df() -->
+<!--   d <- d %>% arrange(desc(freq)) -->
+<!--   d <- d %>% head(100) -->
+
+<!--   words <- d$word -->
+<!--   freqs <- d$freq -->
+
+<!--   color <- ifelse(party =="Republican","#FF2700","#008FD5") -->
+<!--   d3wordcloud(words, freqs, colors=color, rotate.min=0, rotate.max=0) -->
+
+
+<!-- } -->
+<!-- clouds_d3(1797,1860, "Republican") -->
+<!-- clouds_d3(1797,1860, "Democrat") -->
+
+<!-- ``` -->
+
+#Conclusion
+The brief history of the United States of America has been full of interesting events that have shaped, not only the people in the country, but also from the rest of the world.
+
+Presidential speeches contain information that reflects the general sentiment of the country, and even the world. On one hand, partisanship ideologies are completely embedded into presidential speeches, allowing us to analyze the broad prevailing ideologies by looking at presidential speeches. On the other hand, humankind milestones such as World Wars and economic recessions have had deep effects on people's moral, and presidential speeches are reflective of such reality.
