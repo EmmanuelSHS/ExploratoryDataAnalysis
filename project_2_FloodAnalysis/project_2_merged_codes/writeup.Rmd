@@ -1,0 +1,383 @@
+---
+title: "AWESOM-O"
+author: "Vishal Juneja"
+date: "March 8, 2016"
+output: html_document
+---
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+setwd("/Users/vishaljuneja/Dropbox/EDAV/Repos/EDAV_Project_2/final_report")
+#install.packages("plotly")
+library(plotly)
+library(ggplot2)
+library(lattice)
+
+df = read.csv("data/Cleaned_main_cause.csv", strip.white = TRUE)
+df$Began = as.Date(df$Began, format = "%Y-%m-%d")
+df$Ended = as.Date(df$Ended, format = "%Y-%m-%d")
+
+# clean countries column
+
+trim_whitespace <- function (x) gsub("^\\s+|\\s+$", "", x)
+df$Country = trim_whitespace(df$Country)
+
+trim_commas <- function (x) gsub(",+$", "", x)
+df$Country = trim_commas(df$Country)
+```
+
+### Data Validation
+
+``` {r, echo=FALSE, warning=FALSE, message=FALSE}
+##correlating displaced and dead
+
+df_non_zero_dead = df[df$Dead > 0 & df$Displaced > 0, ]
+g1 = ggplot() + geom_point(aes(x=log(df_non_zero_dead$Dead), y=log(df_non_zero_dead$Displaced)))
+g1 = g1 + labs(title="Dead Vs Displaced (log scale)", x="Deaths", y="Displaced")
+g1 = g1 + geom_smooth(aes(x=log(df_non_zero_dead$Dead), y=log(df_non_zero_dead$Displaced)), method = loess)
+g1 = g1 + theme(plot.title = element_text(size=20, face="bold", margin = margin(10, 10, 10, 10)))
+g1 = g1 + theme(axis.text.x=element_text(size=12, vjust=0.5))
+g1 = g1 + theme(axis.title.x=element_text(size=15))
+g1 = g1 + theme(axis.title.y=element_text(size=15))
+g1
+```
+
+The above plot clearly shows that number of people dead vs displaced is correlated with a positive slope (as expected).
+
+The Trellis plots below informs that peak of both deaths and displacement plots move towards higher mean values as flood severity level increases.
+
+``` {r ,echo=FALSE, warning=FALSE, message=FALSE}
+
+subset = c("Dead", "Severity..")
+df_cat = df[,subset]
+df_cat = df_cat[complete.cases(df_cat),]
+df_cat$Dead = log(df_cat$Dead)
+df_cat$Severity.. = as.character(df_cat$Severity..)
+names(df_cat) = c("Dead", "Severity")
+densityplot(~df_cat$Dead | df_cat$Severity, 	
+            main=list(label="Deaths Vs Severity (density plot)", cex=1.25),
+            ylab = list(cex=1.25),
+            xlab=list(label="Deaths (log scale)", cex=1.25),
+            scales=list(cex=1))
+
+## Severity density plots (trellis)
+
+subset = c("Displaced", "Severity..")
+df_cat = df[,subset]
+df_cat = df_cat[complete.cases(df_cat),]
+df_cat$Displaced = log(df_cat$Displaced)
+df_cat$Severity.. = as.character(df_cat$Severity..)
+names(df_cat) = c("Displaced", "Severity")
+densityplot(~df_cat$Displaced | df_cat$Severity, 	
+            main=list(label="Displaced Vs Severity (density plot)", cex=1.25),
+            ylab = list(cex=1.25),
+            xlab=list(label="Displaced (log scale)", cex=1.25),
+            scales=list(cex=1))
+
+```
+
+The box plot of Deaths with Severity re-confirms above insights. Even though the median value of number of deaths generally increase with severity, we see that floods marked less severe also causes large number of deaths and damage sometimes.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+## plotly box plot
+#df_small = df[,c("Country", "duration", "Dead", "Displaced", "Severity..", )]
+plot_ly(df, y=log(Dead), x=Severity.., type="box") %>%
+layout(title = "Deaths Vs Severity (box plots)",
+       xaxis = list(title = "Severity"),
+         yaxis = list(title = "Deaths in log scale"))
+```
+
+### Timeline charts
+
+The following graphs plot the displacements and casualities that occurred over the years. The years _1991_, _2004_ and _2008_ were particulary severe in terms of total number of casualities. 
+
+Note that the number of displaced people and casualities have been coming down since 2008 though (probably indicative of better disaster preparation but can not be confirmed from this evidence alone). {Also note that since the graph is in log scale a difference of say 2 between two years results in overall 100 times increase/decrease in total magnitude}
+
+``` {r, echo=FALSE, warning=FALSE, message=FALSE}
+## dead vs displaced over the years
+library(reshape2)
+library(dplyr)
+df$year = substr(as.character(df$Began), 0, 4)
+dd = df %>% group_by(year) %>% summarise(dead=sum(Dead), displaced=sum(Displaced))
+
+g3 = ggplot(data=dd)
+g3 = g3 + geom_bar(aes(x=year, y=log(displaced), colour="Displaced"), stat="identity", fill="blue", alpha=0.5)
+g3 = g3 + geom_bar(data=dd, aes(x=year, y=log(dead), colour="Dead"), stat="identity", fill="pink", alpha=0.7)
+g3 = g3 + labs(title="Timeline: Displaced | Dead (log scale)", x="Year", y="Displaced | Dead")
+g3 = g3 + theme(plot.title = element_text(size=20, face="bold", margin = margin(10, 0, 10, 0)))
+g3 = g3 + theme(axis.text.x=element_text(angle = 90, size=14, vjust=1.0))
+g3 = g3 + theme(axis.title.x=element_text(size=17, vjust=-0.5))
+g3 = g3 + theme(axis.title.y=element_text(size=15))
+g3 = g3 + scale_colour_manual(name="Legend",
+                              values=c(Displaced="blue", Dead="red"))
+g3
+```
+
+
+``` {r, echo=FALSE, warning=FALSE, message=FALSE}
+library(sp)
+library(rworldmap)
+library(reshape2)
+
+coords2country = function(points)
+{  
+  countriesSP <- getMap(resolution='low')
+  #setting CRS directly to that from rworldmap
+  pointsSP = SpatialPoints(points, proj4string=CRS(proj4string(countriesSP)))
+  
+  # use 'over' to get indices of the Polygons object containing each point 
+  indices = over(pointsSP, countriesSP)
+  
+  # return the ADMIN names of each country
+  indices$ADMIN  
+  #indices$ISO3 # returns the ISO3 code 
+}
+
+coords2continent = function(points)
+{  
+  countriesSP <- getMap(resolution='low')
+  #setting CRS directly to that from rworldmap
+  pointsSP = SpatialPoints(points, proj4string=CRS(proj4string(countriesSP)))  
+  
+  # use 'over' to get indices of the Polygons object containing each point 
+  indices = over(pointsSP, countriesSP)
+
+  indices$REGION   # returns the continent (7 continent model)
+}
+
+df = read.csv("data/Cleaned_main_cause.csv", strip.white = TRUE)
+df$Began = as.Date(df$Began, format = "%Y-%m-%d")
+
+# clean countries column
+df_no_na = df[complete.cases(data.frame(lon=df$Centroid.X, lat=df$Centroid.Y)),]
+df_no_na$clean_countries = coords2country(data.frame(lon=df_no_na$Centroid.X, lat=df_no_na$Centroid.Y))
+
+## get continent mapping
+df_no_na$continent = coords2continent(data.frame(lon=df_no_na$Centroid.X, lat=df_no_na$Centroid.Y))
+
+```
+
+The following two graphs explore yearly incidence of flood deaths and displacement of people (smoothed out).
+
+``` {r, echo=FALSE, warning=FALSE, message=FALSE, fig.width = 9, fig.height = 5}
+## has death rate been changing with years?
+df = df_no_na
+df$year = substr(as.character(df$Began), 0, 4)
+dd = df %>% group_by(year, continent) %>% summarise(dead=sum(Dead), displaced=sum(Displaced))
+
+g1 = ggplot(data=dd, aes(x=year, y=log(dead), group=continent, colour=continent))
+g1 = g1 + geom_smooth(method = lm)
+g1 = g1 + scale_colour_brewer(palette="Set1")
+g1 = g1 + labs(title="Timeline: Continent wise Casualities", y="Dead (log scale)", x="")
+g1 = g1 + theme(plot.title = element_text(size=20, face="bold", margin = margin(10, 0, 10, 0)))
+g1 = g1 + theme(axis.text.x = element_text(angle = 90, size=14, vjust=1.0))
+g1 = g1 + theme(axis.text.y = element_text(size=14))
+g1 = g1 + theme(axis.title.x = element_text(size=15, vjust=-0.5))
+g1 = g1 + theme(axis.title.y = element_text(size=15))
+g1 = g1 + theme(legend.title = element_text(size=14))
+g1 = g1 + theme(legend.text = element_text(size=13))
+g1
+
+## plot displacement of people
+g1 = ggplot(data=dd, aes(x=year, y=log(displaced), group=continent, colour=continent))
+g1 = g1 + geom_smooth(method = lm)
+g1 = g1 + scale_colour_brewer(palette="Set1")
+g1 = g1 + labs(title="Timeline: Continent wise Displaced", y="Displaced (log scale)", x="")
+g1 = g1 + theme(plot.title = element_text(size=20, face="bold", margin = margin(10, 0, 10, 0)))
+g1 = g1 + theme(axis.text.x = element_text(angle=90, size=14, vjust=1.0))
+g1 = g1 + theme(axis.text.y = element_text(size=14))
+g1 = g1 + theme(axis.title.x = element_text(size=15, vjust=-0.5))
+g1 = g1 + theme(axis.title.y = element_text(size=15))
+g1 = g1 + theme(legend.title = element_text(size=14))
+g1 = g1 + theme(legend.text = element_text(size=13))
+g1
+
+```
+
+From above we can conclude that a) **Asia** has been the major sufferer of the most devastating floods over all the years and b) flood deaths and displacements have been _on a rise_ in both **Africa** and **Australia** (and more steeply in Austrlaia).
+
+
+The following graphs aggregates casualities over all years (categorized by countries and continents)
+``` {r, echo=FALSE, warning=FALSE, message=FALSE, fig.width = 7, fig.height = 7}
+
+## group by country
+df_g_country = df_no_na %>% group_by(clean_countries) %>% summarise(total_dead = sum(Dead))
+df_g_country = df_g_country[complete.cases(df_g_country),]
+df_g_country = df_g_country[order(-df_g_country$total_dead), ]
+df_sub = df_g_country[1:50,]
+
+g1 = ggplot(data=df_sub) 
+g1 = g1 + geom_bar(aes(x=reorder(clean_countries, total_dead), y=total_dead), fill="blue", stat="identity", alpha=0.7) 
+g1 = g1 + labs(title="Casualities by Country", x="country", y="casualities")
+g1 = g1 + theme(plot.title = element_text(size=20, face="bold", margin = margin(10, 0, 10, 0)))
+g1 = g1 + theme(axis.title.x=element_text(size=15, vjust=1.0))
+g1 = g1 + theme(axis.text.x=element_text(size=14, vjust=1.0))
+g1 = g1 + theme(axis.title.y=element_text(size=15))
+g1 = g1 + coord_flip()
+g1 = g1 + scale_fill_brewer()
+g1
+```
+
+``` {r, echo=FALSE, warning=FALSE, message=FALSE, fig.width = 3, fig.height = 3}
+
+## group by continent
+df_cont = df_no_na %>% group_by(continent) %>% summarise(total_dead = sum(Dead), total_displaced=sum(Displaced))
+df_cont = df_cont[complete.cases(df_cont),]
+df_cont = df_cont[order(-df_cont$total_dead), ]
+
+g2 = ggplot(data=df_cont) 
+g2 = g2 + geom_bar(aes(x=reorder(continent, total_dead), y=total_dead), fill="blue", stat="identity", alpha=0.7) 
+g2 = g2 + labs(title="Casualities by Continent", x="continent", y="casualities")
+g2 = g2 + theme(plot.title = element_text(size=10, face="bold", margin = margin(10, 0, 10, 0)))
+g2 = g2 + theme(axis.title.x=element_text(size=15, vjust=1.0))
+g2 = g2 + theme(axis.text.x=element_text(size=14, vjust=1.0))
+g2 = g2 + theme(axis.title.y=element_text(size=15))
+g2 = g2 + coord_flip()
+g2 = g2 + scale_fill_brewer()
+g2
+
+```
+
+### Exploring relationship of Pressure and Flood Occurances
+
+We will now try to figure out if there is any correspondance between grid pressure values and the occurance of floods in that area and generally if pressure variations are indicative of floods.
+
+``` {r, echo=FALSE, warning=FALSE, message=FALSE}
+library("ggmap")
+library("maptools")
+library("maps")
+library(RNetCDF)
+require(reshape2)
+
+fname = "data/NOAA_Daily_phi_500mb.nc"
+fid = open.nc(fname)
+dat = read.nc(fid)
+```
+
+``` {r, echo=FALSE, warning=FALSE, message=FALSE, include = FALSE}
+library(animation)
+
+
+#Set delay between frames when replaying
+ani.options(interval = 0.1, ani.dev="png", ani.height=300, ani.width=900)
+saveGIF({
+  lon = dat$X - 180
+  lat = dat$Y
+  a=16120
+  b=16130
+  
+  min_z = Inf
+  max_z = 0
+  for (i in c(a:b)) {
+    phi = dat$phi[,,i]
+    if (min_z > min(phi)) {min_z = min(phi)}
+    if (max_z < max(phi)) {max_z = max(phi)}
+  }
+
+  rgb.palette=colorRampPalette(c('darkblue','palegreen1','yellow','red2'),interpolate='spline')
+  for (i in c(a:b)) {
+    phi = dat$phi[,,i]
+    filled.contour(x=lon, y=rev(lat), z=phi, zlim=c(min_z,max_z), color.palette=rgb.palette, #levels=numeric,
+                   plot.title=title(main="Phi - Turkey Flood 1992-02-20", xlab='Longitude [°]', ylab='Latitude [°]'),
+                   plot.axes={axis(1); axis(2);map('world', add=TRUE);grid()})
+  }
+},movie.name = "turkey_flood.gif")
+
+#Set delay between frames when replaying
+ani.options(interval = 0.1, ani.dev="png", ani.height=300, ani.width=900)
+saveGIF({
+  lon = dat$X - 180
+  lat = dat$Y
+  a = 15755
+  b = 15765
+  
+  min_z = Inf
+  max_z = 0
+  for (i in c(a:b)) {
+    phi = dat$phi[,,i]
+    if (min_z > min(phi)) {min_z = min(phi)}
+    if (max_z < max(phi)) {max_z = max(phi)}
+  }
+
+  rgb.palette=colorRampPalette(c('darkblue','palegreen1','yellow','red2'),interpolate='spline')
+  for (i in c(a:b)) {
+    phi = dat$phi[,,i]
+    filled.contour(x=lon, y=rev(lat), z=phi, zlim=c(min_z,max_z), color.palette=rgb.palette, #levels=numeric,
+                   plot.title=title(main="Phi - No flood Turkey 1991-02-20", xlab='Longitude [°]', ylab='Latitude [°]'),
+                   plot.axes={axis(1); axis(2);map('world', add=TRUE);grid()})
+  }
+},movie.name = "turkey_no_flood.gif")
+```
+
+#### Empirical observation
+The two animations compare pressure values when there was no flood and during the time of flood in Turkey. The first gif is when **Turkey** was flooded in the year 1992 (which resulted in the death of 200 people). One can notice a depression (blue region) appearing near Turkey.
+
+The next animation is of the previous year when there was **no** flood. In this figure a high pressure blurb crosses Western Europe, Russia and hovers over Turkey.
+![Turkey-Flood](turkey_flood.gif)
+![Turkey-No-Flood](turkey_no_flood.gif)
+
+#### Principal Component Analysis
+
+To perform PCA, we take a slice of the 3d array and convert it into a 2d matrix. The rows are the grid points and the columns are the pressure values on each day since 2015-01-01. We also scale the matrix before performing the analysis.
+
+``` {r,echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+start_date = as.Date("1948-01-01")
+start_idx = as.numeric(as.Date("2015-01-01") - start_date)
+end_idx = length(dat$T)
+#end_idx = start_idx + 2
+end_idx - start_idx
+
+## rows are grid points (get similar times)
+final = rbind(NULL)
+for (x in c(1:length(dat$X))) {
+  for (y in c(1:length(dat$Y))) {
+      final = rbind(final, c(dat$phi[x,y,start_idx:end_idx]))
+  }
+}
+
+## identify flooded points
+df = read.csv("data/Cleaned_main_cause.csv", strip.white = TRUE)
+df$Began = as.Date(df$Began, format = "%Y-%m-%d")
+df$Ended = as.Date(df$Ended, format = "%Y-%m-%d")
+df = df[df$Began > as.Date("2015-01-01"),]
+df = df[complete.cases(df),]
+df = df[df$Centroid.Y > 35 & df$Centroid.Y < 70,]
+
+closest_location = function(lon, lat, X_flood, Y_flood) {
+  index_X = which(abs(lon-X_flood)==min(abs(lon-X_flood)))
+  index_Y = which(abs(lat-Y_flood)==min(abs(lat-Y_flood)))
+  index_X * length(lat) + index_Y
+}
+
+idx = apply(df[,c("Centroid.X","Centroid.Y")], 1, function(x) closest_location(lon, lat, x["Centroid.X"], x["Centroid.Y"]))
+
+vec = rep(0, dim(final)[1])
+vec[idx] = 1
+
+### scaled matrix
+final_scaled = t(scale(t(final)))
+pc3 = prcomp(final_scaled, cor=TRUE, scores=TRUE)
+dfpca = data.frame(pc3$x[,1], pc3$x[,2], vec)
+names(dfpca) = c("PC1", "PC2", "c")
+```
+
+``` {r,echo=FALSE, warning=FALSE, message=FALSE}
+plot(pc3, main = "PC.Variance", type="l")
+```
+
+The variance along each component is plotted in the above figure. As seen from the figure first 5-7 PC's are the most useful in explaining a large chunk of variation.
+
+In the figure below, we plot the grid points using only PC1 and PC2. The flooded points are represented by blue dots. Note that we have **only plotted the centroid** of the flooded region as stated in the flood records file. But even then we can observe that many of flooded points cluster together.
+
+``` {r,echo=FALSE, warning=FALSE, message=FALSE}
+
+g = ggplot(data=dfpca) + geom_point(aes(x=PC1, y=PC2, colour=c, size=c))
+g = g + labs(title="Grid Points PCA")
+g = g + theme(plot.title = element_text(size=20, face="bold", margin = margin(10, 0, 10, 0)))
+g = g + theme(legend.position="none")
+g = g + theme(axis.text.x = element_text(size=14, vjust=1.0))
+g = g + theme(axis.text.y = element_text(size=14))
+g = g + theme(axis.title.x = element_text(size=15, vjust=-0.5))
+g = g + theme(axis.title.y = element_text(size=15))
+g
+```
+

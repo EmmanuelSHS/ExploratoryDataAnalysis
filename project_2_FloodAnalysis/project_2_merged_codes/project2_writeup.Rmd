@@ -1,0 +1,140 @@
+---
+title: "Project 2 Writeup"
+author: "Mengqi Wang"
+date: "March 7, 2016"
+output: html_document
+---
+
+
+```{r}
+#Set your working directory
+setwd('~/Documents/cuw4701_edav/')
+#Use Alimu's cleaned raw data
+raw <- read.csv("Cleaned_main_cause.csv")
+# Useful functions
+coords2country = function(points)
+{  
+  countriesSP <- getMap(resolution='low')
+  #countriesSP <- getMap(resolution='high') #you could use high res map from rworldxtra if you were concerned about detail
+  
+  # convert our list of points to a SpatialPoints object
+  pointsSP = SpatialPoints(points, proj4string=CRS(" +proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0"))
+  
+  #setting CRS directly to that from rworldmap
+  pointsSP = SpatialPoints(points, proj4string=CRS(proj4string(countriesSP)))
+  
+  # use 'over' to get indices of the Polygons object containing each point 
+  indices = over(pointsSP, countriesSP)
+  
+  # return the ADMIN names of each country
+  indices$ADMIN  
+  #indices$ISO3 # returns the ISO3 code 
+}
+###Use Alimu's cleaned raw data
+raw <- read.csv("Cleaned_main_cause.csv")
+#### clean
+raw <- raw[complete.cases(raw),]
+raw$Country <- coords2country(data.frame(lon=raw$Centroid.X, lat=raw$Centroid.Y))
+write.csv(raw,"Cleaned_main_cause.csv")
+###
+```
+
+### cause plots
+```{r}
+library(ggplot2)
+dur_seve = data.frame(cause = raw$Main.cause, severity=raw$duration, count = 1)
+
+# there is a extreme point in Heavy rain, rerange
+dur_cause = data.frame(cause=raw[raw$duration<200,]$Main.cause, duration = raw[raw$duration<200,]$duration)
+dur_cause = dur_cause[!is.na(dur_cause)[,2],]
+
+p1 = ggplot(dur_cause,aes(x=cause, y=duration, color = cause))  + 
+  geom_violin(trim = FALSE) + 
+  stat_summary(fun.y = median, geom = "point") + scale_y_log10() + 
+  theme(text = element_text(size=16), axis.text.x=element_blank())
+p1
+
+#
+cause_seve = data.frame(cause = raw$Main.cause, severity = raw$Severity..)
+cause_seve = cause_seve[!is.na(cause_seve)[,2],]
+p2 = ggplot(cause_seve,aes(x=cause, y=severity, color = cause)) + 
+  geom_violin(trim = FALSE) + 
+  stat_summary(fun.y = median, geom = "point") +
+  theme(text = element_text(size=16), axis.text.x=element_blank())
+p2
+
+# There exists some high number in casualty, for the sake of plotting, we remove them during plotting
+cause_casualty = data.frame(cause = raw$Main.cause, casualty = raw$Dead)
+cause_casualty = cause_casualty[!is.na(cause_casualty)[,2],]
+cause_casualty[cause_casualty$casualty>10000,]
+cc_plot = cause_casualty[cause_casualty$casualty<=10000,]
+p3 = ggplot(cc_plot,aes(x=cause, y=casualty, color = cause)) + 
+  geom_violin(trim = FALSE) + 
+  stat_summary(fun.y = median, geom = "point") + scale_y_log10()+ theme(text = element_text(size=16), axis.text.x=element_blank())
+p3
+```
+
+The plots above give as an intuition on the distribution of duration, severity and casualty corresponding to each kind of flood, as well as their medians. The horizontal width of each distribution represents the density at this given Y-axis (duration, severity, casualty). 
+
+The overall pictures tell us that the duration of flood is around 10 days, severity from 1.0 to 1.25, casualty around 10 people. This tells us that most of the floods are not so destructive. 
+
+A closer look into different causes gives us a more detailed ideas on characteristics them. As we can see, landslide and tsunami usually have a shorter duration, but they are destructive since they are high in severity and casualty. The casualty number stays about 1000, which is quite horrible. Flood by snow is usually high in severity, with median at 2.0, unlike other types of flood. The distribution tells us that different types of flood share some similarity in that they have median duration, low severity and median casualty.
+
+### Word Cloud Analysis
+```{r}
+library(tm)
+library(SnowballC)
+library(wordcloud)
+library(stringi)
+
+# word cloud for all records
+library(tm)
+library(SnowballC)
+library(wordcloud)
+library(stringi)
+#### Whole news
+news <- read.csv("news.csv")
+news <- news[complete.cases(news),]
+makewordcloud <- function(news) {
+  corpus.copy <- corpus <- paste(unlist(news$content), collapse =" ")
+  corpus <- Corpus(VectorSource(corpus))
+  corpus <- tm_map(corpus, removePunctuation)
+  corpus <- tm_map(corpus, PlainTextDocument)
+  corpus <- tm_map(corpus, removeWords, stopwords('english'))
+  
+  corpus.temp <- corpus
+  corpus.temp <- tm_map(corpus.temp, content_transformer(tolower),lazy=TRUE)
+  d <- c("floods", 'flooding', 'flood', "flooded",
+         "destroyed", "damaged", "the", "rivers", "also", "rains", "official", "district" )
+  corpus.temp <- tm_map(corpus.temp, removeWords, d)
+  
+  wordcloud(corpus.temp, max.words = 50, random.order = FALSE)
+}
+
+### clean country via Vishal's script from raw data
+library(sp)
+library(rworldmap)
+
+# The single argument to this function, points, is a data.frame in which:
+#   - column 1 contains the longitude in degrees
+#   - column 2 contains the latitude in degrees
+
+news$country = coords2country(data.frame(lon=news$X, lat=news$Y))
+
+###
+indiannews <- news[news$country =='India',]
+thainews <- news[news$country == 'Thailand',]
+japannews <- news[news$country == 'Japan',]
+chinanews <- news[news$country == 'China',]
+
+makewordcloud(news)
+makewordcloud(indiannews)
+makewordcloud(thainews)
+makewordcloud(japannews)
+makewordcloud(chinanews)
+```
+
+The first word cloud includes news for all kinds of floods. It shows that most floods are related to heavy rains in just few days, and overflow of river. The overflowed area is large.
+
+The news reports may help us further investigate into different causes and different countries. A detailed case study on China, India, Japan and Thailand gives us more information on the location, time, types as well as other interesting points worth noticing. For example, in China, floods happened largely on July and August, casued by heavy rain and Typhoon in agricultural areas. In Japan, landslides and typhoon are common reasons and floods affect cities a lot other than agricultural areas. In Thailand, October and September are common flood seasons. In India, Monsoonal rain is the most common one.
+
