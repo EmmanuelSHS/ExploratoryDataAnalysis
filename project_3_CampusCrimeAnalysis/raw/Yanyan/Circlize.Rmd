@@ -1,0 +1,33 @@
+---
+title: "Circlized"
+output: html_document
+---
+
+
+```{r, echo=FALSE}
+setwd("~/Desktop")
+oncampus_crime <- read.csv("oncampuscrime101112.csv")
+oncampus_crime = na.omit(oncampus_crime)
+crime_2010 = oncampus_crime[,13:21]
+crime_2011 = oncampus_crime[,22:30]
+crime_2012 = oncampus_crime[,31:39]
+
+# circlize plot
+devtools::install_github("mattflor/chorddiag")
+library(chorddiag)
+
+m = cor(crime_2012)
+diag(m) = 0
+colnames(m) = c("Murder","Manslaughter","Forcible Sex Offense","Nonforcible Sex Offense",
+"Robbery","Assault","Burglary","Vehicle Theft","Arson")
+rownames(m) = c("Murder","Manslaughter","Forcible Sex Offense","Nonforcible Sex Offense", "Robbery","Assault","Burglary","Vehicle Theft","Arson")
+
+# set the colors
+groupColors <- c("#66C2A5", "#A6D854", "#FFD92F", "#F26223","#FF0000","#E78AC3",
+                 "#FC8D62","#8DA0CB","#FFDD89")
+
+#plot
+chorddiag(m, groupColors = groupColors, groupnamePadding = 28)
+
+```
+

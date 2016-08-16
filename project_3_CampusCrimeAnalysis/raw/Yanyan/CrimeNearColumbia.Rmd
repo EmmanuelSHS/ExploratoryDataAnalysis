@@ -1,0 +1,45 @@
+---
+title: "plot"
+output: html_document
+---
+
+
+
+```{r, echo=FALSE}
+library(leaflet)
+library(shiny)
+library(plotly)
+setwd("~/Downloads")
+crime = read.csv("Felony.csv")
+crime_2015 = crime[crime$OccurrenceYear==2015,]
+crime_columbia = crime_2015[crime_2015$Longitude>-73.98,]
+crime_columbia = crime_columbia[crime_columbia$Longitude< -73.95,]
+crime_columbia = crime_columbia[crime_columbia$Latitude<40.813,]
+crime_columbia = crime_columbia[crime_columbia$Latitude>40.80,]
+
+crimes = as.data.frame(table(crime_columbia$Offense))
+colnames(crimes) = c("Type","Frequency")
+Type = crimes$Type
+Frequency=crimes$Frequency
+s = list(
+  l = 50,
+  r = 50,
+  b = 100,
+  t = 100,
+  pad = 4
+)
+plot_ly(x=Type,y=Frequency,type = "bar",color = Type)%>%
+  layout(autosize = F, width = 480, height = 480, margin = s,showlegend = FALSE,
+         title = "Different Types of Crimes Near Columbia University")
+
+crime_columbia_larceny = crime_columbia[crime_columbia$Offense=="GRAND LARCENY",]
+leaflet(data = crime_columbia_larceny) %>% addTiles() %>%
+  addMarkers(~Longitude, ~Latitude, popup = "Columbia University")
+
+
+
+
+```
+
+
+

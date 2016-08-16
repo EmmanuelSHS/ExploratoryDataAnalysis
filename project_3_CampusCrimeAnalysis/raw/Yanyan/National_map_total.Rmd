@@ -1,0 +1,42 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+
+```{r, echo=FALSE}
+#crime by state
+setwd("~/Desktop")
+oncampus_crime <- read.csv("oncampuscrime101112.csv")
+oncampus_crime = na.omit(oncampus_crime)
+crime_2010 = oncampus_crime[,13:21]
+crime_2011 = oncampus_crime[,22:30]
+crime_2012 = oncampus_crime[,31:39]
+
+state_crime = aggregate(oncampus_crime[,13:39],by=list(oncampus_crime$State), FUN=sum)[-1,]
+num_ppl = aggregate(oncampus_crime$Total,by=list(oncampus_crime$State), FUN=sum)[-1,]
+crime_total = data.frame(state_crime[,1],rowSums(state_crime[,-1]))
+names(crime_total)[1] = "state" 
+names(crime_total)[2] = "number_of_crimes"
+
+
+library(plotly)
+
+# give state boundaries a white border
+l <- list(color = toRGB("white"), width = 2)
+# specify some map projection/options
+g <- list(
+  scope = 'usa',
+  projection = list(type = 'albers usa'),
+  showlakes = TRUE,
+  lakecolor = toRGB('white')
+)
+
+plot_ly(crime_total, z = number_of_crimes, locations = state, type = 'choropleth',
+        locationmode = 'USA-states', color = number_of_crimes, colors = 'Purples',
+        marker = list(line = l), colorbar = list(title = "Number of Crimes ")) %>%
+  layout(title = 'On-Campus Crime 2010-2013', geo = g)
+
+```
+
+

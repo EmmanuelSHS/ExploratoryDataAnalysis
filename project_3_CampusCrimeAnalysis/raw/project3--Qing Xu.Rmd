@@ -1,0 +1,110 @@
+---
+title: "project3—Qing Xu"
+author: "Qing Xu"
+date: "2016年3月23日"
+output: html_document
+---
+
+
+
+```{r, echo=FALSE, fig.width = 12, fig.height = 5}
+library(plotly)
+library(corrplot)
+
+setwd("~/Desktop/spring_2016/stat 4701/project 3/")
+
+file <- read.csv("oncampuscrime101112.csv", header = TRUE)
+
+
+new_file <- file[complete.cases(file),]
+type_data <- data.frame(new_file$Sector_desc, new_file$MURD10)
+
+for (i in 1:dim(new_file)[1]){
+  type_data[i,2] = sum(new_file[i, 13:39])
+}
+a <- aggregate(type_data$new_file.MURD10, by = list(Category = type_data$new_file.Sector_desc), FUN = sum)
+
+
+
+a1 = a[1,2]/table(new_file$Sector_desc)[3]
+a2 = a[2,2]/table(new_file$Sector_desc)[4]
+a3 = a[3,2]/table(new_file$Sector_desc)[5]
+a4 = a[4,2]/table(new_file$Sector_desc)[6]
+a5 = a[5,2]/table(new_file$Sector_desc)[7]
+a6 = a[6,2]/table(new_file$Sector_desc)[8]
+a7 = a[7,2]/table(new_file$Sector_desc)[9]
+a8 = a[8,2]/table(new_file$Sector_desc)[10]
+a9 = a[9,2]/table(new_file$Sector_desc)[11]
+
+final <- data.frame(c(a1,a2,a3,a4,a5,a6,a7,a8,a9))
+average_number_of_crime_per_university = final$c.a1..a2..a3..a4..a5..a6..a7..a8..a9.
+university_type = names(c(a1,a2,a3,a4,a5,a6,a7,a8,a9))
+
+
+f <- list(
+  family = "Courier New, monospace",
+  size = 15,
+  color = "#7f7f7f"
+)
+f1 <- list(
+  family = "Old Standard TT, serif",
+  size = 10,
+  color = "black"
+)
+f2 <- list(
+  family = "Old Standard TT, serif",
+  size = 7,
+  color = "black"
+)
+x <- list(
+  title = "university type",
+  titlefont = f,
+  tickfont = f2
+)
+y <- list(
+  title = "average number of crime per university",
+  titlefont = f,
+  tickfont = f1
+)
+plot_ly(x=university_type, y = average_number_of_crime_per_university, mode = "markers") %>% layout(title = "university type vs. average number of crime per university", xaxis = x, yaxis = y)
+
+
+```
+
+In the "oncampuscrime101112.csv" dataset, we tried to find out if the average number of oncampus crime for a university is related with its type("private for-profit, 2-year", "public, 2-year", etc.). From this plot, we found that "Public, 4-year or above" universities have pretty higher number of oncampus crime compared with other types of university, which is about 38 oncampus crime for one university over three years(2010-2012). While "Private nonprofit, 4-year or above" universities have the second highest number of oncampus crime. Other types of universities have relatively low number of crime, which are below 5 crimes per university over three years.
+
+```{r, echo=FALSE, fig.width = 15, fig.height = 15}
+Felony <- read.csv("Felony.csv", header = TRUE)
+new_felony <- Felony[Felony$OccurrenceYear == "2015",]
+
+offense <- as.factor(new_felony$Offense)
+levels(offense) <- 1:length(levels(offense))
+
+borough <- as.factor(new_felony$Borough)
+levels(borough) <- 1:length(levels(borough))
+
+both <- data.frame(as.numeric(offense),new_felony$Offense,as.numeric(borough),new_felony$Borough)
+
+mat <- matrix(0,nrow = 6,ncol = 7)
+
+for (i in 1:6){
+  for (j in 1:7){
+    mat[i,j] = nrow(both[both$as.numeric.offense.==j & both$as.numeric.borough.==i,])
+  }
+}
+  
+rownames(mat) <- c(levels(both$new_felony.Borough))
+colnames(mat) <- c(levels(both$new_felony.Offense))
+mat = mat[-1,]
+
+for (i in 1:7){
+  mat[,i] = mat[,i]/summary(both$new_felony.Offense)[i]
+}
+
+corrplot(mat, method = "color", tl.cex = 1, is.corr = FALSE, tl.col = "black", mar=c(0,0,1,0), title = "Distribution of Offense in each district")
+
+```
+
+In the "Felony.csv" dataset, we tried to find out which district has a higher rate of different type of offense. In the plot, we can easily conclude that Staten Island has the lowest rate of all types of offense, which may caused by its lowest rate of population in new york city. While Brooklyn has the highest rate of most type of offense including Burglary, felony assault, grand larceny of motor vehicle, murder, rape and robbery, which makes sense since Manhattan has the highest population in New York City. Among this, about 39% of murder cases happened in Brooklyn from Jan 2015 to Sept 2015. In addition, Manhattan has the highest rate of grand larceny.
+
+
